@@ -5,48 +5,69 @@
 package gin_tpl
 
 import (
-	"context"
+	"fmt"
 	"github.com/china-xs/gin-tpl/middleware"
 	"github.com/gin-gonic/gin"
+	"time"
 )
 
-type (
-	//AppInfo 服务发现注册信息，讲道理，不应该注册到服务器，也不应该提供grpc 如果需要直接上kratos
-	AppInfo interface {
-		ID() string
-		Name() string
-		Version() string
-		Metadata() map[string]string
-	}
+// ServerOption is an HTTP server option.
+type ServerOption func(*Server)
 
-	App struct {
-		opts   options
-		ctx    context.Context
-		engine *gin.Engine
+type Server struct {
+	port    int32
+	Engine  *gin.Engine
+	timeout time.Duration
+	ms      []middleware.Middleware
+	Enc     EncodeResponseFunc
+}
 
-		filters []FilterFunc            //
-		ms      []middleware.Middleware //
-		cancel  func()
-	}
-)
-
-// New 创建gin服务
-func New(opts ...Option) *App {
-	r := gin.Default()
-
-	return &App{
-		engine: r,
+// Timeout with server timeout.
+func Timeout(timeout time.Duration) ServerOption {
+	return func(s *Server) {
+		s.timeout = timeout
 	}
 }
 
-//Run 启动
-func (a *App) Run() error {
+// Middleware with service middleware option.
+func Middleware(m ...middleware.Middleware) ServerOption {
+	return func(o *Server) {
+		o.ms = m
+	}
+}
 
-	a.engine.Run()
+// ResponseEncoder with response encoder.
+func ResponseEncoder(en EncodeResponseFunc) ServerOption {
+	return func(o *Server) {
+		o.Enc = en
+	}
+}
+
+func NewServer(opts ...ServerOption) *Server {
+	r := gin.Default()
+	srv := &Server{
+		Engine: r,
+		port:   8080,
+	}
+
+	for _, o := range opts {
+		o(srv)
+	}
+	return srv
+}
+
+//Run 启动
+func (s *Server) Run() error {
+	s.Engine.Run(fmt.Sprintf(":%v", s.port))
 	return nil
 }
 
 // Stop 停止
-func (a *App) Stop() error {
+func (s *Server) Stop() error {
 	return nil
+}
+
+// Route 新增自定义路由  文件上传
+func (s *Server) Route(httpMethod, relativePath string, handlers ...gin.HandlerFunc) {
+	s.Engine.Handle(httpMethod, relativePath, handlers...)
 }

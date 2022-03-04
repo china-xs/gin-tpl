@@ -55,19 +55,19 @@ var httpTemplate = `
 {{$svrName := .ServiceName}}
 type {{.ServiceType}}GinServer interface {
 {{- range .MethodSets}}
-	{{.Name}}(*gin.Context, *{{.Request}}) (*{{.Reply}}, error)
+	{{.Name}}(context.Context, *{{.Request}}) (*{{.Reply}}, error)
 {{- end}}
 }
 
-func Register{{.ServiceType}}GinServer(s *gin.Engine, srv {{.ServiceType}}GinServer,ms ...gin.HandlerFunc) {
-	s.Use(ms...)
+func Register{{.ServiceType}}GinServer(s *gin_tpl.Server, srv {{.ServiceType}}GinServer,ms ...gin.HandlerFunc) {
+	route :=s.Engine.Use(ms...)
 	{{- range .Methods}}
-	s.{{.Method}}("{{.Path}}", _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(srv))
+	route.{{.Method}}("{{.Path}}", _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s,srv))
 	{{- end}}
 }
 
 {{range .Methods}}
-func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(srv {{$svrType}}GinServer) func(c *gin.Context) {
+func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s *gin_tpl.Server,srv {{$svrType}}GinServer) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		var in {{.Request}}
 		{{- if .HasBody}}
@@ -91,10 +91,7 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(srv {{$svrType}}GinServer) func
 		}
 		{{- end}}
 		out,err := srv.{{.Name}}(c, &in)
-		if err != nil {
-			return 
-		}
-		c.JSON(200,out)
+		s.Enc(c,out,err)
 		return
 		//reply := out.(*{{.Reply}})
 		//return ctx.Result(200, reply{{.ResponseBody}})
