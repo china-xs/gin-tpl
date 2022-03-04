@@ -19,7 +19,7 @@ import (
 const (
 	contextPkg = protogen.GoImportPath("context")
 	ginPkg     = protogen.GoImportPath("github.com/gin-gonic/gin")
-	ginSev     = protogen.GoImportPath("github.com/china-xs/gin_tpl")
+	ginSev     = protogen.GoImportPath("github.com/china-xs/gin-tpl")
 )
 
 var methodSets = make(map[string]int)
