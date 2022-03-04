@@ -16,20 +16,21 @@ type (
 	}
 )
 
-func Middleware(m ...middleware.Middleware) Option {
-	return func(o *options) {
-		o.ms = m
-	}
-}
-
-func Filter(filters ...FilterFunc) Option {
-	return func(o *options) {
-		o.filters = filters
-	}
-}
-
-func Port(port int32) Option {
-	return func(o *options) {
-		o.port = port
-	}
-}
+//
+//func Middleware(m ...middleware.Middleware) Option {
+//	return func(o *options) {
+//		o.ms = m
+//	}
+//}
+//
+//func Filter(filters ...FilterFunc) Option {
+//	return func(o *options) {
+//		o.filters = filters
+//	}
+//}
+//
+//func Port(port int32) Option {
+//	return func(o *options) {
+//		o.port = port
+//	}
+//}
