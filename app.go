@@ -48,6 +48,7 @@ func NewServer(opts ...ServerOption) *Server {
 	srv := &Server{
 		Engine: r,
 		port:   8080,
+		Enc:    DefaultResponseEncoder,
 	}
 
 	for _, o := range opts {
