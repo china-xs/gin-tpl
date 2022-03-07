@@ -52,6 +52,12 @@ func ResponseEncoder(en EncodeResponseFunc) ServerOption {
 	}
 }
 
+//
+// NewServer
+// @Description: gin 启动器
+// @param opts
+// @return *Server
+//
 func NewServer(opts ...ServerOption) *Server {
 	r := gin.Default()
 	srv := &Server{
