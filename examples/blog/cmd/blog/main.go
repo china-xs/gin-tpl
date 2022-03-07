@@ -19,3 +19,7 @@ func main() {
 	}
 
 }
+
+func NewApp() *tpl.Server {
+	return tpl.NewServer()
+}
