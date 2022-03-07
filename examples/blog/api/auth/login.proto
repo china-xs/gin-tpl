@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package api.auth;
+
+import "google/api/annotations.proto"; // http proto 包 path third_party
+import "protoc-gen-openapiv2/options/annotations.proto";// swagger proto 包 path third_party
+import "validate/validate.proto";// validate proto 数据校验规则包
+
+option go_package = "github.com/china-xs/gin-tpl/example/blog/api/auth;auth";
+option java_multiple_files = true;
+option java_package = "api.auth";
+
+service Login {
+	rpc GetToken(GetTokenRequest) returns(GetTokenReply){
+		option (google.api.http) = {//主要作用定义http 路由
+			post: "/auth/v1/login",//访问接口路由
+			body: "*",//请求方式
+		};
+		option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+			description: "";// 备注
+			summary: "登陆接口";// 标题
+			tags: "登陆管理";// 分类
+		};
+	};
+}
+
+
+message GetTokenRequest{
+
+	string username = 1[
+		(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+			description: "登陆用户名称"
+		},
+		(validate.rules).string = {
+			min_bytes:2,// 长度要求带有校验、当前暂不支持直接修改错误信息
+			max_bytes:128,
+		}
+	];
+	string password = 2;
+
+}
+message GetTokenReply{
+
+}
+
