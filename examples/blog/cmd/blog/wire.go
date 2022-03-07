@@ -1,18 +1,26 @@
-// Package main
-// @author: xs
-// @date: 2022/3/7
-// @Description: main,描述
+//go:build wireinject
+// +build wireinject
+
 package main
 
 import (
 	tpl "github.com/china-xs/gin-tpl"
 	route "github.com/china-xs/gin-tpl/example/blog/internal/server"
+	srv "github.com/china-xs/gin-tpl/example/blog/internal/service"
 	"github.com/google/wire"
 )
 
-func initApp() (*tpl.Server, func(), error) {
+var providerSet = wire.NewSet(
+// pkg init
+)
+
+// cf config path
+func initApp(cf string) (*tpl.Server, func(), error) {
 	panic(
 		wire.Build(
+			// db init
+			// log init
 			route.Set, //路由注册
+			srv.Set,   // 接口实现
 		))
 }
