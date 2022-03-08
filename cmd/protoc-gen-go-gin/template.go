@@ -88,9 +88,10 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s *gin_tpl.Server,srv {{$svrTyp
 			return 
 		}
 		{{- end}}
-
-
-		out,err := srv.{{.Name}}(c, &in)
+		h := s.Middleware(func(c *gin.Context, req interface{}) (interface{}, error) {
+			return srv.{{.Name}}(c, req.(*{{.Request}}))
+		})
+		out, err := h(c, &in)
 		s.Enc(c,out,err)
 		return
 		//reply := out.(*{{.Reply}})

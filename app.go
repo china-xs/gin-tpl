@@ -20,11 +20,13 @@ import (
 // ServerOption is an HTTP server option.
 type ServerOption func(*Server)
 
+//type siddleware(middleware.Handler) middleware.Handler
+
 type Server struct {
 	port    int32
 	Engine  *gin.Engine
 	timeout time.Duration
-	ms      []middleware.Middleware
+	Ms      []middleware.Middleware
 	Enc     EncodeResponseFunc
 	sigs    []os.Signal
 	srv     *http.Server
@@ -40,7 +42,7 @@ func Timeout(timeout time.Duration) ServerOption {
 // Middleware with service middleware option.
 func Middleware(m ...middleware.Middleware) ServerOption {
 	return func(o *Server) {
-		o.ms = m
+		o.Ms = m
 	}
 }
 
@@ -122,4 +124,8 @@ func (s *Server) Stop() error {
 // Route 新增自定义路由  文件上传
 func (s *Server) Route(httpMethod, relativePath string, handlers ...gin.HandlerFunc) {
 	s.Engine.Handle(httpMethod, relativePath, handlers...)
+}
+
+func (s *Server) Middleware(h middleware.Handler) middleware.Handler {
+	return middleware.Chain(s.Ms...)(h)
 }
