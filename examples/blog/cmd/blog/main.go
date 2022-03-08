@@ -13,13 +13,17 @@ import (
 func main() {
 	//tpl.
 	app := tpl.NewServer()
-
+	route, fc, err := initApp()
+	// 初始化 路由
+	route.InitRoute(app)
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		fc()
+	}()
 	if err := app.Run(); err != nil {
 		panic(err)
 	}
 
-}
-
-func NewApp() *tpl.Server {
-	return tpl.NewServer()
 }

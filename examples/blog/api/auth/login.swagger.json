@@ -52,7 +52,22 @@
   },
   "definitions": {
     "authGetTokenReply": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "description": "用户令牌"
+        },
+        "tokenType": {
+          "type": "string",
+          "description": "令牌类型 default:Bearer"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "令牌到期时间"
+        }
+      }
     },
     "authGetTokenRequest": {
       "type": "object",

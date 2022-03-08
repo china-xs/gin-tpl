@@ -5,6 +5,7 @@ package api.auth;
 import "google/api/annotations.proto"; // http proto 包 path third_party
 import "protoc-gen-openapiv2/options/annotations.proto";// swagger proto 包 path third_party
 import "validate/validate.proto";// validate proto 数据校验规则包
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/china-xs/gin-tpl/example/blog/api/auth;auth";
 option java_multiple_files = true;
@@ -39,7 +40,22 @@ message GetTokenRequest{
 	string password = 2;
 
 }
-message GetTokenReply{
 
+message GetTokenReply{
+	string token = 1[
+		(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+			description: "用户令牌",
+		}
+	];
+	string tokenType = 2[
+		(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+			description: "令牌类型 default:Bearer",
+		}
+	];
+	google.protobuf.Timestamp expiresAt = 3[
+		(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+			description: "令牌到期时间",
+		}
+	];
 }
 

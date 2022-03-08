@@ -38,16 +38,12 @@ type ORM interface {
 
 var _ ORM = (*db)(nil)
 
-//logger *zap.Logger
 func New(v *viper.Viper) (*dbConfig, error) {
 	var err error
 	o := new(dbConfig)
 	if err = v.UnmarshalKey("db", o); err != nil {
 		return nil, errors.Wrap(err, "unmarshal db option error")
 	}
-
-	//logger.Info("load database options success", zap.String("url", o.URL))
-
 	return o, err
 }
 
@@ -61,7 +57,7 @@ func NewDb(c *dbConfig, log *zap.Logger) (ORM, func(), error) {
 			return time.Now().Local()
 		},
 		// 数据库配置 统一公用重写日志库即可
-		//Logger: NewGLogger(),
+		Logger: NewDBLog(log),
 	}
 	dsn := fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=utf8mb4&parseTime=true&loc=Local",
 		c.User,
