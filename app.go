@@ -6,7 +6,6 @@ package gin_tpl
 
 import (
 	"context"
-	"fmt"
 	"github.com/china-xs/gin-tpl/middleware"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/errgroup"
@@ -78,8 +77,9 @@ func (s *Server) Run() error {
 	ctx := context.TODO()
 	eg, ctx := errgroup.WithContext(ctx)
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%v", s.port),
+		//Addr:    fmt.Sprintf(":%v", s.port),
 		Handler: s.Engine,
+		Addr:    ":8080",
 	}
 	s.srv = srv
 	eg.Go(func() error { return srv.ListenAndServe() })
