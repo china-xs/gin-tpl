@@ -11,24 +11,15 @@ import (
 	"github.com/google/wire"
 )
 
-var Set = wire.NewSet(
-	NewRoute,
-)
+//var Provider = wire.NewSet(NewRoute, NewOptions)
 
-var InitRouteSet = wire.NewSet(wire.Struct(new(RouteSet), "*"))
+//wire.NewSet
+var InitRouteSet = wire.NewSet(wire.Struct(new(Route), "*"))
 
-type RouteSet struct {
-	srvLogin *implLogin.LoginService
-	//ReportRepo *data.MpQu
-	//ActivityInstancesRepo *merchants.ActivityInstancesRepo
+type Route struct {
+	SrvLogin *implLogin.LoginService
 }
 
-//
-func NewRoute(app *tpl.Server, routes RouteSet) (func(), error) {
-	//注册路由
-	apiAuth.RegisterLoginGinServer(app, routes.srvLogin)
-
-	return func() {
-
-	}, nil
+func (r Route) InitRoute(app *tpl.Server) {
+	apiAuth.RegisterLoginGinServer(app, r.SrvLogin)
 }

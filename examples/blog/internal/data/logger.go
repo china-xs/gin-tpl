@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/pkg/errors"
+	otelTrace "go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -17,6 +18,7 @@ import (
 
 const msgKey = "sql"
 const msgInfo = "sql-info"
+const msgTrace = "trace_id"
 
 var (
 	infoStr      = "%s\n[info] "
@@ -52,8 +54,10 @@ func (l *log) LogMode(level logger.LogLevel) logger.Interface {
 // Info print info
 func (l log) Info(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Info {
+		trace := zap.String(msgTrace, getTrace(ctx))
 		l.zapLog.Info(msgKey,
 			zap.String(msgInfo, fmt.Sprintf(infoStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)),
+			trace,
 		)
 	}
 }
@@ -61,8 +65,10 @@ func (l log) Info(ctx context.Context, msg string, data ...interface{}) {
 // Warn print warn messages
 func (l log) Warn(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Warn {
+		trace := zap.String(msgTrace, getTrace(ctx))
 		l.zapLog.Warn(msgKey,
 			zap.String(msgInfo, fmt.Sprintf(warnStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)),
+			trace,
 		)
 	}
 }
@@ -70,9 +76,10 @@ func (l log) Warn(ctx context.Context, msg string, data ...interface{}) {
 // Error print error messages
 func (l log) Error(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Error {
+		trace := zap.String(msgTrace, getTrace(ctx))
 		l.zapLog.Error(msgKey, zap.String(msgInfo,
-			fmt.Sprintf(errStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...),
-		))
+			fmt.Sprintf(errStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)),
+			trace)
 	}
 }
 
@@ -81,6 +88,7 @@ func (l log) Trace(ctx context.Context, begin time.Time, fc func() (string, int6
 	if l.LogLevel <= logger.Silent {
 		return
 	}
+	trace := zap.String(msgTrace, getTrace(ctx))
 
 	elapsed := time.Since(begin)
 	switch {
@@ -88,25 +96,56 @@ func (l log) Trace(ctx context.Context, begin time.Time, fc func() (string, int6
 	case err != nil && l.LogLevel >= logger.Error && (!errors.Is(err, gorm.ErrRecordNotFound)):
 		sql, rows := fc()
 		if rows == -1 {
-			l.zapLog.Error(msgKey, zap.String(msgInfo, fmt.Sprintf(traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, "-", sql)))
+			l.zapLog.Error(
+				msgKey,
+				zap.String(msgInfo, fmt.Sprintf(traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, "-", sql)),
+				trace,
+			)
 		} else {
-			l.zapLog.Error(msgKey, zap.String(msgInfo, fmt.Sprintf(traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, rows, sql)))
+			l.zapLog.Error(
+				msgKey,
+				zap.String(msgInfo, fmt.Sprintf(traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, rows, sql)),
+				trace,
+			)
 		}
 	case elapsed > l.SlowThreshold && l.SlowThreshold != 0 && l.LogLevel >= logger.Warn:
 		sql, rows := fc()
 		slowLog := fmt.Sprintf("SLOW SQL >= %v", l.SlowThreshold)
 		if rows == -1 {
-			l.zapLog.Warn(msgKey, zap.String(msgInfo, fmt.Sprintf(traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, "-", sql)))
+			l.zapLog.Warn(
+				msgKey,
+				zap.String(msgInfo, fmt.Sprintf(traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, "-", sql)),
+				trace,
+			)
 		} else {
-			l.zapLog.Warn(msgKey, zap.String(msgInfo, fmt.Sprintf(traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, rows, sql)))
+			l.zapLog.Warn(
+				msgKey,
+				zap.String(msgInfo, fmt.Sprintf(traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, rows, sql)),
+				trace,
+			)
 		}
 	case l.LogLevel == logger.Info:
 		sql, rows := fc()
-		fmt.Printf("%v", sql)
+
 		if rows == -1 {
-			l.zapLog.Info(msgKey, zap.String(msgInfo, fmt.Sprintf(traceStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, "-", sql)))
+			l.zapLog.Info(
+				msgKey,
+				zap.String(msgInfo, fmt.Sprintf(traceStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, "-", sql)),
+				trace,
+			)
 		} else {
-			l.zapLog.Info(msgKey, zap.String(msgInfo, fmt.Sprintf(traceStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, rows, sql)))
+			l.zapLog.Info(
+				msgKey,
+				zap.String(msgInfo, fmt.Sprintf(traceStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, rows, sql)),
+				trace,
+			)
 		}
 	}
+}
+
+func getTrace(ctx context.Context) string {
+	if span := otelTrace.SpanContextFromContext(ctx); span.HasTraceID() {
+		return span.TraceID().String()
+	}
+	return ""
 }

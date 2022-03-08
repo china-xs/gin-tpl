@@ -1,5 +1,10 @@
 
 
+.PHONY: wire
+# generate wire
+wire:
+	cd cmd/blog && wire
+
 .PHONY: http
 # generate http code
 http:

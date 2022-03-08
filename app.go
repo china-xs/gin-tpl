@@ -78,7 +78,7 @@ func (s *Server) Run() error {
 	ctx := context.TODO()
 	eg, ctx := errgroup.WithContext(ctx)
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%s", s.port),
+		Addr:    fmt.Sprintf(":%v", s.port),
 		Handler: s.Engine,
 	}
 	s.srv = srv
