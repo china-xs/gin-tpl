@@ -28,6 +28,7 @@ func _Login_GetToken0_Gin_Handler(s *gin_tpl.Server, srv LoginGinServer) func(c 
 	return func(c *gin.Context) {
 		var in GetTokenRequest
 		if err := c.ShouldBind(&in); err != nil {
+			s.Enc(c, nil, err)
 			return
 		}
 		h := s.Middleware(func(c *gin.Context, req interface{}) (interface{}, error) {
@@ -36,8 +37,6 @@ func _Login_GetToken0_Gin_Handler(s *gin_tpl.Server, srv LoginGinServer) func(c 
 		out, err := h(c, &in)
 		s.Enc(c, out, err)
 		return
-		//reply := out.(*GetTokenReply)
-		//return ctx.Result(200, reply)
 	}
 }
 
@@ -45,9 +44,11 @@ func _Login_GetInfo0_Gin_Handler(s *gin_tpl.Server, srv LoginGinServer) func(c *
 	return func(c *gin.Context) {
 		var in GetInfoRequest
 		if err := c.ShouldBindQuery(&in); err != nil {
+			s.Enc(c, nil, err)
 			return
 		}
 		if err := c.ShouldBindUri(&in); err != nil {
+			s.Enc(c, nil, err)
 			return
 		}
 		h := s.Middleware(func(c *gin.Context, req interface{}) (interface{}, error) {
@@ -56,7 +57,5 @@ func _Login_GetInfo0_Gin_Handler(s *gin_tpl.Server, srv LoginGinServer) func(c *
 		out, err := h(c, &in)
 		s.Enc(c, out, err)
 		return
-		//reply := out.(*GetInfoReply)
-		//return ctx.Result(200, reply)
 	}
 }

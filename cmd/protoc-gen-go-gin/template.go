@@ -73,18 +73,21 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s *gin_tpl.Server,srv {{$svrTyp
 
 		{{- if .HasBody}}
 		if err := c.ShouldBind(&in{{.Body}}); err != nil {
+			s.Enc(c,nil,err)
 			return 
 		}
 		{{- end}}
 		
 		{{- if eq .Method "GET" "DELETE" }}
 		if err := c.ShouldBindQuery(&in); err != nil {
+			s.Enc(c,nil,err)
 			return 
 		}
 		{{- end}}
 		
 		{{- if .HasVars}}
 		if err := c.ShouldBindUri(&in); err != nil {
+			s.Enc(c,nil,err)
 			return 
 		}
 		{{- end}}
@@ -94,8 +97,6 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s *gin_tpl.Server,srv {{$svrTyp
 		out, err := h(c, &in)
 		s.Enc(c,out,err)
 		return
-		//reply := out.(*{{.Reply}})
-		//return ctx.Result(200, reply{{.ResponseBody}})
 	}
 }
 {{end}}
