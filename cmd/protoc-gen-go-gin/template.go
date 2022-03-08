@@ -70,26 +70,26 @@ func Register{{.ServiceType}}GinServer(s *gin_tpl.Server, srv {{.ServiceType}}Gi
 func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s *gin_tpl.Server,srv {{$svrType}}GinServer) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		var in {{.Request}}
+
 		{{- if .HasBody}}
-		if err := c.ShouldBindJSON(&in{{.Body}}); err != nil {
+		if err := c.ShouldBind(&in{{.Body}}); err != nil {
 			return 
 		}
+		{{- end}}
 		
-		{{- if not (eq .Body "")}}
-		if err := c.ShouldBind(&in); err != nil {
+		{{- if eq .Method "GET" "DELETE" }}
+		if err := c.ShouldBindQuery(&in); err != nil {
 			return 
 		}
 		{{- end}}
-		{{- else}}
-		if err := c.BindQuery(&in{{.Body}}); err != nil {
-			return 
-		}
-		{{- end}}
+		
 		{{- if .HasVars}}
-		if err := ctx.BindVars(&in); err != nil {
+		if err := c.ShouldBindUri(&in); err != nil {
 			return 
 		}
 		{{- end}}
+
+
 		out,err := srv.{{.Name}}(c, &in)
 		s.Enc(c,out,err)
 		return

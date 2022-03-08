@@ -14,24 +14,45 @@ import (
 // is compatible with the kratos package it is being compiled against.
 // gin.context.gin_tpl.
 type LoginGinServer interface {
+	GetInfo(context.Context, *GetInfoRequest) (*GetInfoReply, error)
 	GetToken(context.Context, *GetTokenRequest) (*GetTokenReply, error)
 }
 
 func RegisterLoginGinServer(s *gin_tpl.Server, srv LoginGinServer, ms ...gin.HandlerFunc) {
 	route := s.Engine.Use(ms...)
 	route.POST("/auth/v1/login", _Login_GetToken0_Gin_Handler(s, srv))
+	route.GET("/auth/v1/login/:id", _Login_GetInfo0_Gin_Handler(s, srv))
 }
 
 func _Login_GetToken0_Gin_Handler(s *gin_tpl.Server, srv LoginGinServer) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		var in GetTokenRequest
-		if err := c.ShouldBindJSON(&in); err != nil {
+		if err := c.ShouldBind(&in); err != nil {
 			return
 		}
+
 		out, err := srv.GetToken(c, &in)
 		s.Enc(c, out, err)
 		return
 		//reply := out.(*GetTokenReply)
+		//return ctx.Result(200, reply)
+	}
+}
+
+func _Login_GetInfo0_Gin_Handler(s *gin_tpl.Server, srv LoginGinServer) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		var in GetInfoRequest
+		if err := c.ShouldBindQuery(&in); err != nil {
+			return
+		}
+		if err := c.ShouldBindUri(&in); err != nil {
+			return
+		}
+
+		out, err := srv.GetInfo(c, &in)
+		s.Enc(c, out, err)
+		return
+		//reply := out.(*GetInfoReply)
 		//return ctx.Result(200, reply)
 	}
 }

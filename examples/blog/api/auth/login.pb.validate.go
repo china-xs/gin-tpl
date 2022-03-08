@@ -35,6 +35,209 @@ var (
 	_ = sort.Sort
 )
 
+// Validate checks the field values on GetInfoRequest with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *GetInfoRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on GetInfoRequest with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in GetInfoRequestMultiError,
+// or nil if none found.
+func (m *GetInfoRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *GetInfoRequest) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Id
+
+	// no validation rules for Username
+
+	if len(errors) > 0 {
+		return GetInfoRequestMultiError(errors)
+	}
+
+	return nil
+}
+
+// GetInfoRequestMultiError is an error wrapping multiple validation errors
+// returned by GetInfoRequest.ValidateAll() if the designated constraints
+// aren't met.
+type GetInfoRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GetInfoRequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GetInfoRequestMultiError) AllErrors() []error { return m }
+
+// GetInfoRequestValidationError is the validation error returned by
+// GetInfoRequest.Validate if the designated constraints aren't met.
+type GetInfoRequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e GetInfoRequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e GetInfoRequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e GetInfoRequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e GetInfoRequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e GetInfoRequestValidationError) ErrorName() string { return "GetInfoRequestValidationError" }
+
+// Error satisfies the builtin error interface
+func (e GetInfoRequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sGetInfoRequest.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = GetInfoRequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = GetInfoRequestValidationError{}
+
+// Validate checks the field values on GetInfoReply with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *GetInfoReply) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on GetInfoReply with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in GetInfoReplyMultiError, or
+// nil if none found.
+func (m *GetInfoReply) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *GetInfoReply) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if len(errors) > 0 {
+		return GetInfoReplyMultiError(errors)
+	}
+
+	return nil
+}
+
+// GetInfoReplyMultiError is an error wrapping multiple validation errors
+// returned by GetInfoReply.ValidateAll() if the designated constraints aren't met.
+type GetInfoReplyMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GetInfoReplyMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GetInfoReplyMultiError) AllErrors() []error { return m }
+
+// GetInfoReplyValidationError is the validation error returned by
+// GetInfoReply.Validate if the designated constraints aren't met.
+type GetInfoReplyValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e GetInfoReplyValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e GetInfoReplyValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e GetInfoReplyValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e GetInfoReplyValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e GetInfoReplyValidationError) ErrorName() string { return "GetInfoReplyValidationError" }
+
+// Error satisfies the builtin error interface
+func (e GetInfoReplyValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sGetInfoReply.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = GetInfoReplyValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = GetInfoReplyValidationError{}
+
 // Validate checks the field values on GetTokenRequest with the rules defined
 // in the proto definition for this message. If any rules are violated, the
 // first error encountered is returned, or nil if there are no violations.
@@ -68,7 +271,16 @@ func (m *GetTokenRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	// no validation rules for Password
+	if l := len(m.GetPassword()); l < 2 || l > 128 {
+		err := GetTokenRequestValidationError{
+			field:  "Password",
+			reason: "value length must be between 2 and 128 bytes, inclusive",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
 		return GetTokenRequestMultiError(errors)

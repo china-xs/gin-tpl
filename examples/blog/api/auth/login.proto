@@ -7,7 +7,7 @@ import "protoc-gen-openapiv2/options/annotations.proto";// swagger proto 包 pat
 import "validate/validate.proto";// validate proto 数据校验规则包
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/china-xs/gin-tpl/example/blog/api/auth;auth";
+option go_package = "github.com/china-xs/gin-tpl/examples/blog/api/auth;auth";
 option java_multiple_files = true;
 option java_package = "api.auth";
 
@@ -23,11 +23,32 @@ service Login {
 			tags: "登陆管理";// 分类
 		};
 	};
+	rpc GetInfo(GetInfoRequest) returns (GetInfoReply){
+		option (google.api.http) = {//主要作用定义http 路由
+			get: "/auth/v1/login/{id}",//访问接口路由
+		};
+		option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+			description: "";// 备注
+			summary: "get测试";// 标题
+			tags: "登陆管理";// 分类
+		};
+	}
+}
+
+message GetInfoRequest{
+	// @gotags: uri:"id"
+	int32  id = 1;
+	// @gotags: form:"username" uri:"username"
+	string username = 2;
+
+}
+message GetInfoReply{
+
 }
 
 
 message GetTokenRequest{
-
+	// @gotags: form:"username" uri:"username"
 	string username = 1[
 		(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
 			description: "登陆用户名称"
@@ -36,8 +57,15 @@ message GetTokenRequest{
 			min_bytes:2,// 长度要求带有校验、当前暂不支持直接修改错误信息
 			max_bytes:128,
 		}
+
 	];
-	string password = 2;
+	// @gotags: form:"password" uri:"username"
+	string password = 2[
+		(validate.rules).string = {
+			min_bytes:2,// 长度要求带有校验、当前暂不支持直接修改错误信息
+			max_bytes:128,
+		}
+	];
 
 }
 
