@@ -4,7 +4,13 @@
 // @Description: 数据解析
 package gin_tpl
 
-import "github.com/gin-gonic/gin"
+import (
+	"encoding/json"
+	"github.com/gin-gonic/gin"
+	"github.com/go-kratos/kratos/v2/errors"
+	"net/http"
+	"strings"
+)
 
 type EncodeResponseFunc func(*gin.Context, interface{}, error)
 
@@ -12,9 +18,16 @@ type EncodeResponseFunc func(*gin.Context, interface{}, error)
 func DefaultResponseEncoder(c *gin.Context, obj interface{}, err error) {
 	// 默认输出逻辑
 	if err != nil {
-		c.JSON(404, gin.H{
-			"err": err.Error(),
-		})
+		se := errors.FromError(err)
+		body, err := json.Marshal(se)
+		w := c.Writer
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", strings.Join([]string{"application", "json"}, "/"))
+		w.WriteHeader(int(se.Code))
+		_, _ = w.Write(body)
 	} else {
 		c.JSON(200, obj)
 	}
