@@ -5,7 +5,7 @@
 package service
 
 import (
-	srvAuth "github.com/china-xs/gin-tpl/example/blog/internal/service/auth"
+	srvAuth "github.com/china-xs/gin-tpl/examples/blog/internal/service/auth"
 	"github.com/google/wire"
 )
 

@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type LoginClient interface {
 	GetToken(ctx context.Context, in *GetTokenRequest, opts ...grpc.CallOption) (*GetTokenReply, error)
+	GetInfo(ctx context.Context, in *GetInfoRequest, opts ...grpc.CallOption) (*GetInfoReply, error)
 }
 
 type loginClient struct {
@@ -42,11 +43,21 @@ func (c *loginClient) GetToken(ctx context.Context, in *GetTokenRequest, opts ..
 	return out, nil
 }
 
+func (c *loginClient) GetInfo(ctx context.Context, in *GetInfoRequest, opts ...grpc.CallOption) (*GetInfoReply, error) {
+	out := new(GetInfoReply)
+	err := c.cc.Invoke(ctx, "/api.auth.Login/GetInfo", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LoginServer is the server API for Login service.
 // All implementations must embed UnimplementedLoginServer
 // for forward compatibility
 type LoginServer interface {
 	GetToken(context.Context, *GetTokenRequest) (*GetTokenReply, error)
+	GetInfo(context.Context, *GetInfoRequest) (*GetInfoReply, error)
 	mustEmbedUnimplementedLoginServer()
 }
 
@@ -56,6 +67,9 @@ type UnimplementedLoginServer struct {
 
 func (UnimplementedLoginServer) GetToken(context.Context, *GetTokenRequest) (*GetTokenReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetToken not implemented")
+}
+func (UnimplementedLoginServer) GetInfo(context.Context, *GetInfoRequest) (*GetInfoReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetInfo not implemented")
 }
 func (UnimplementedLoginServer) mustEmbedUnimplementedLoginServer() {}
 
@@ -88,6 +102,24 @@ func _Login_GetToken_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Login_GetInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LoginServer).GetInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.auth.Login/GetInfo",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LoginServer).GetInfo(ctx, req.(*GetInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Login_ServiceDesc is the grpc.ServiceDesc for Login service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -98,6 +130,10 @@ var Login_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetToken",
 			Handler:    _Login_GetToken_Handler,
+		},
+		{
+			MethodName: "GetInfo",
+			Handler:    _Login_GetInfo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

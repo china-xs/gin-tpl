@@ -48,9 +48,52 @@
           "登陆管理"
         ]
       }
+    },
+    "/auth/v1/login/{id}": {
+      "get": {
+        "summary": "get测试",
+        "operationId": "Login_GetInfo",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authGetInfoReply"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "@gotags: uri:\"id\"",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "username",
+            "description": "@gotags: form:\"username\" uri:\"username\".",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "登陆管理"
+        ]
+      }
     }
   },
   "definitions": {
+    "authGetInfoReply": {
+      "type": "object"
+    },
     "authGetTokenReply": {
       "type": "object",
       "properties": {
@@ -74,10 +117,12 @@
       "properties": {
         "username": {
           "type": "string",
-          "description": "登陆用户名称"
+          "description": "登陆用户名称",
+          "title": "@gotags: form:\"username\" uri:\"username\""
         },
         "password": {
-          "type": "string"
+          "type": "string",
+          "title": "@gotags: form:\"password\" uri:\"username\""
         }
       }
     },

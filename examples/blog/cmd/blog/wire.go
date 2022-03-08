@@ -5,8 +5,8 @@ package main
 
 import (
 	//tpl "github.com/china-xs/gin-tpl"
-	"github.com/china-xs/gin-tpl/example/blog/internal/server"
-	"github.com/china-xs/gin-tpl/example/blog/internal/service"
+	"github.com/china-xs/gin-tpl/examples/blog/internal/server"
+	"github.com/china-xs/gin-tpl/examples/blog/internal/service"
 	"github.com/google/wire"
 )
 

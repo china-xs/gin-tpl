@@ -6,8 +6,8 @@ package server
 
 import (
 	tpl "github.com/china-xs/gin-tpl"
-	apiAuth "github.com/china-xs/gin-tpl/example/blog/api/auth"
-	implLogin "github.com/china-xs/gin-tpl/example/blog/internal/service/auth"
+	apiAuth "github.com/china-xs/gin-tpl/examples/blog/api/auth"
+	implLogin "github.com/china-xs/gin-tpl/examples/blog/internal/service/auth"
 	"github.com/google/wire"
 )
 

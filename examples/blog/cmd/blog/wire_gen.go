@@ -7,8 +7,8 @@
 package main
 
 import (
-	"github.com/china-xs/gin-tpl/example/blog/internal/server"
-	"github.com/china-xs/gin-tpl/example/blog/internal/service/auth"
+	"github.com/china-xs/gin-tpl/examples/blog/internal/server"
+	"github.com/china-xs/gin-tpl/examples/blog/internal/service/auth"
 )
 
 // Injectors from wire.go:

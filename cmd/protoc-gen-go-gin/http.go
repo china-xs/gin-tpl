@@ -112,10 +112,15 @@ func buildHTTPRule(g *protogen.GeneratedFile, m *protogen.Method, rule *annotati
 		method       string
 		body         string
 		responseBody string
+		hasVars      bool
 	)
 	switch pattern := rule.Pattern.(type) {
 	case *annotations.HttpRule_Get:
 		path = pattern.Get
+		if hasPathParams(path) {
+			hasVars = true
+			path = initPathParams(path)
+		}
 		method = "GET"
 	case *annotations.HttpRule_Put:
 		path = pattern.Put
@@ -125,6 +130,10 @@ func buildHTTPRule(g *protogen.GeneratedFile, m *protogen.Method, rule *annotati
 		method = "POST"
 	case *annotations.HttpRule_Delete:
 		path = pattern.Delete
+		if hasPathParams(path) {
+			hasVars = true
+			path = initPathParams(path)
+		}
 		method = "DELETE"
 	case *annotations.HttpRule_Patch:
 		path = pattern.Patch
@@ -136,6 +145,9 @@ func buildHTTPRule(g *protogen.GeneratedFile, m *protogen.Method, rule *annotati
 	body = rule.Body
 	responseBody = rule.ResponseBody
 	md := buildMethodDesc(g, m, method, path)
+	if hasVars && !md.HasVars {
+		md.HasVars = true
+	}
 	if method == "GET" || method == "DELETE" {
 		if body != "" {
 			_, _ = fmt.Fprintf(os.Stderr, "\u001B[31mWARN\u001B[m: %s %s body should not be declared.\n", method, path)
@@ -157,6 +169,38 @@ func buildHTTPRule(g *protogen.GeneratedFile, m *protogen.Method, rule *annotati
 		md.ResponseBody = "." + camelCaseVars(responseBody)
 	}
 	return md
+}
+
+//
+// hasPathParams
+// @Description: 判断路由是否有参数，暂时仅对get|delete 做此操作调整，骚操作，post、pust 暂不处理
+// @param path
+// @return bool
+//
+func hasPathParams(path string) bool {
+	paths := strings.Split(path, "/")
+	for _, p := range paths {
+		if len(p) > 0 && (p[0] == '{' && p[len(p)-1] == '}' || p[0] == ':') {
+			return true
+		}
+	}
+	return false
+}
+
+//
+// initPathParams
+// @Description: 转换路由参数
+// @param oldPath
+// @return string
+//
+func initPathParams(oldPath string) string {
+	paths := strings.Split(oldPath, "/")
+	for i, p := range paths {
+		if len(p) > 0 && (p[0] == '{' && p[len(p)-1] == '}' || p[0] == ':') {
+			paths[i] = ":" + p[1:len(p)-1]
+		}
+	}
+	return strings.Join(paths, "/")
 }
 
 func buildMethodDesc(g *protogen.GeneratedFile, m *protogen.Method, method, path string) *methodDesc {
