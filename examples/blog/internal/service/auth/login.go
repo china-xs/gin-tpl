@@ -4,16 +4,20 @@ import (
 	"context"
 	"fmt"
 	pb "github.com/china-xs/gin-tpl/examples/blog/api/auth"
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"time"
 )
 
 type LoginService struct {
 	pb.UnimplementedLoginServer
+	log *zap.Logger
 }
 
-func NewLoginService() *LoginService {
-	return &LoginService{}
+func NewLoginService(log *zap.Logger) *LoginService {
+	return &LoginService{
+		log: log,
+	}
 }
 
 func (s *LoginService) GetToken(ctx context.Context, req *pb.GetTokenRequest) (*pb.GetTokenReply, error) {

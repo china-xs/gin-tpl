@@ -9,6 +9,6 @@ import (
 	"github.com/google/wire"
 )
 
-var Set = wire.NewSet(
+var ProviderSet = wire.NewSet(
 	srvAuth.NewLoginService,
 )
