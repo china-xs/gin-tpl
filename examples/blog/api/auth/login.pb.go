@@ -30,9 +30,9 @@ type GetInfoRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	// @gotags: uri:"id"
-	Id int32 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id int32 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty" uri:"id"`
 	// @gotags: form:"username" uri:"username"
-	Username string `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
+	Username string `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty" form:"username" uri:"username"`
 }
 
 func (x *GetInfoRequest) Reset() {
@@ -125,9 +125,9 @@ type GetTokenRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	// @gotags: form:"username" uri:"username"
-	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty" form:"username" uri:"username"`
 	// @gotags: form:"password" uri:"username"
-	Password string `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	Password string `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty" form:"password" uri:"username"`
 }
 
 func (x *GetTokenRequest) Reset() {
