@@ -29,8 +29,8 @@ type GetInfoRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// @gotags: uri:"id"
-	Id int32 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty" uri:"id"`
+	// @gotags: uri:"id" form:"id"
+	Id int32 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty" uri:"id" form:"id"`
 	// @gotags: form:"username" uri:"username"
 	Username string `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty" form:"username" uri:"username"`
 }
