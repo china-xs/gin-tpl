@@ -78,7 +78,7 @@
           },
           {
             "name": "username",
-            "description": "@gotags: form:\"username\" uri:\"username\".",
+            "description": "@gotags: form:\"username\" uri:\"username\"",
             "in": "query",
             "required": false,
             "type": "string"

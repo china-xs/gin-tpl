@@ -8,17 +8,18 @@ init:
 	# gotag 书写方式不适合、转换查找文件路径处理错误
 	#go install github.com/srikrsna/protoc-gen-gotag
 	# pb.go 文件生成包
-	go get -u google.golang.org/protobuf/cmd/protoc-gen-go
+	go install google.golang.org/protobuf/cmd/protoc-gen-go
 	# wire 安装
-	go get -u github.com/google/wire/cmd/wire
+	go install github.com/google/wire/cmd/wire
 	# 自动生成 gin 接口 自家用接口还要调整
 	go install github.com/china-xs/gin-tpl/cmd/protoc-gen-go-gin@latest
 	# gin 绑定 参数增加tag
-	go install github.com/favadi/protoc-go-inject-tag
+	#go install github.com/favadi/protoc-go-inject-tag
+	go get -u github.com/favadi/protoc-go-inject-tag
 	# 请求参数校验
-	go get -u github.com/envoyproxy/protoc-gen-validate
+	go install github.com/envoyproxy/protoc-gen-validate@latest
 	# 错误状态返回提示语，使用kratos error
-	go get -u github.com/go-kratos/kratos/cmd/protoc-gen-go-errors/v2
+	go get  github.com/go-kratos/kratos/cmd/protoc-gen-go-errors/v2
 	# swagger 依赖包
 	go get -u github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
 

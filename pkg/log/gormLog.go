@@ -1,7 +1,7 @@
 // Package log
 // @author: xs
 // @date: 2022/3/9
-// @Description: log 重写gorm logger 日志模块
+// @Description: log 重写gorm logger 日志模块 仅写操作日志
 package log
 
 import (
@@ -22,6 +22,8 @@ const msgKey = "sql"
 const msgInfo = "sql-info"
 const msgTrace = "trace_id"
 
+var ProviderGLSet = wire.NewSet(NewGL, NewGLOpts)
+
 var (
 	infoStr      = "%s\n[info] "
 	warnStr      = "%s\n[warn] "
@@ -37,17 +39,15 @@ type GLog struct {
 	SlowThreshold time.Duration // 慢查询阀值
 }
 
-type Options struct {
+type GLOptions struct {
 	Level         logger.LogLevel
 	SlowThreshold time.Duration // 慢查询阀值
 }
 
-var ProviderSet = wire.NewSet(New, NewOpts)
-
-func NewOpts(v *viper.Viper) (*Options, error) {
+func NewGLOpts(v *viper.Viper) (*GLOptions, error) {
 	var (
 		err error
-		o   = new(Options)
+		o   = new(GLOptions)
 	)
 	if err = v.UnmarshalKey("log", o); err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func NewOpts(v *viper.Viper) (*Options, error) {
 
 	return o, err
 }
-func New(o *Options, l *zap.Logger) *GLog {
+func NewGL(o *GLOptions, l *zap.Logger) *GLog {
 	return &GLog{
 		zapLog:        l,
 		LogLevel:      o.Level,

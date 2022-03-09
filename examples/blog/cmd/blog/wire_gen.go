@@ -7,11 +7,11 @@
 package main
 
 import (
-	"github.com/china-xs/gin-tpl/examples/blog/internal/log"
 	"github.com/china-xs/gin-tpl/examples/blog/internal/server"
 	"github.com/china-xs/gin-tpl/examples/blog/internal/service"
 	"github.com/china-xs/gin-tpl/examples/blog/internal/service/auth"
 	"github.com/china-xs/gin-tpl/pkg/config"
+	"github.com/china-xs/gin-tpl/pkg/log"
 	"github.com/google/wire"
 )
 
