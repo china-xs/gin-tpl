@@ -6,9 +6,14 @@ package gin_tpl
 
 import (
 	"context"
+	"fmt"
 	"github.com/china-xs/gin-tpl/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/go-kratos/swagger-api/openapiv2"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/sdk/resource"
+	traceSDK "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"golang.org/x/sync/errgroup"
 	"log"
 	"net/http"
@@ -34,6 +39,7 @@ type Server struct {
 	apiSrv  *http.Server
 	ctx     context.Context
 	openApi bool // 是否开启接口文档
+	name    string
 }
 
 //OpenApi 是否开启文档
@@ -57,10 +63,22 @@ func Middleware(m ...middleware.Middleware) ServerOption {
 	}
 }
 
+func Name(name string) ServerOption {
+	return func(o *Server) {
+		o.name = name
+	}
+}
+
 // ResponseEncoder with response encoder.
 func ResponseEncoder(en EncodeResponseFunc) ServerOption {
 	return func(o *Server) {
 		o.Enc = en
+	}
+}
+
+func Port(port int32) ServerOption {
+	return func(o *Server) {
+		o.port = port
 	}
 }
 
@@ -79,7 +97,16 @@ func NewServer(opts ...ServerOption) *Server {
 		sigs:    []os.Signal{syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT},
 		timeout: 10 * time.Second,
 		ctx:     context.TODO(),
+		name:    "gin-app",
 	}
+	// 全局注册
+	tp := traceSDK.NewTracerProvider(
+		traceSDK.WithResource(resource.NewSchemaless(
+			semconv.ServiceNameKey.String(srv.name),
+		)),
+	)
+	//Tracer 全局注册
+	otel.SetTracerProvider(tp)
 
 	for _, o := range opts {
 		o(srv)
@@ -91,14 +118,16 @@ func NewServer(opts ...ServerOption) *Server {
 func (s *Server) Run() error {
 	ctx := context.TODO()
 	eg, ctx := errgroup.WithContext(ctx)
-	//s.Engine.Handlers
 	srv := &http.Server{
-		//Addr:    fmt.Sprintf(":%v", s.port),
+		Addr:    fmt.Sprintf(":%v", s.port),
 		Handler: s.Engine,
-		Addr:    ":8080",
+		//Addr:    ":8080",
 	}
 	s.srv = srv
-	eg.Go(func() error { return srv.ListenAndServe() })
+	eg.Go(func() error {
+		log.Printf("listen:%v", s.port)
+		return srv.ListenAndServe()
+	})
 	if s.openApi {
 		eg.Go(func() error {
 			openAPIhandler := openapiv2.NewHandler()

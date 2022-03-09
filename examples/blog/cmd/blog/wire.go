@@ -4,10 +4,10 @@
 package main
 
 import (
-	//tpl "github.com/china-xs/gin-tpl"
-	"github.com/china-xs/gin-tpl/examples/blog/internal/log"
 	"github.com/china-xs/gin-tpl/examples/blog/internal/server"
 	"github.com/china-xs/gin-tpl/examples/blog/internal/service"
+	"github.com/china-xs/gin-tpl/pkg/log"
+	//tpl "github.com/china-xs/gin-tpl"
 	"github.com/china-xs/gin-tpl/pkg/config"
 	"github.com/google/wire"
 )

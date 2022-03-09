@@ -2,7 +2,7 @@
 // versions:v1.0.1
 // protoc-gen-go-gin v1.0.1
 
-package auth
+package v1
 
 import (
 	context "context"
