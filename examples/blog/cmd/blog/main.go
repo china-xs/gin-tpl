@@ -23,7 +23,7 @@ import (
 //	flag.StringVar(&flagconf, "conf", "../../configs/app.yaml", "config path, eg: -conf config.yaml")
 //}
 
-var configFile = flag.String("f", "details.yml", "set config file which viper will loading.")
+var configFile = flag.String("f", "../../configs/app.yaml", "set config file which viper will loading.")
 
 func main() {
 	flag.Parse()

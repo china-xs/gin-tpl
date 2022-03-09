@@ -1,5 +1,5 @@
 log:
-  filename: /tmp/review.log
+  filename: /tmp/app.log
   maxSize: 500
   maxBackups: 3
   maxAge: 3
