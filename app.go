@@ -8,6 +8,7 @@ import (
 	"context"
 	"github.com/china-xs/gin-tpl/middleware"
 	"github.com/gin-gonic/gin"
+	"github.com/go-kratos/swagger-api/openapiv2"
 	"golang.org/x/sync/errgroup"
 	"log"
 	"net/http"
@@ -26,13 +27,23 @@ type Server struct {
 	port    int32
 	Engine  *gin.Engine
 	timeout time.Duration
-	Ms      []middleware.Middleware
+	ms      []middleware.Middleware
 	Enc     EncodeResponseFunc
 	sigs    []os.Signal
 	srv     *http.Server
+	apiSrv  *http.Server
+	ctx     context.Context
+	openApi bool // 是否开启接口文档
 }
 
-// Timeout with server timeout.
+//OpenApi 是否开启文档
+func OpenApi(b bool) ServerOption {
+	return func(s *Server) {
+		s.openApi = b
+	}
+}
+
+// Timeout with server timeout. 服务超时时间，暂时没有控制请求期间超时，仅仅作用在热更新，延迟推出处理
 func Timeout(timeout time.Duration) ServerOption {
 	return func(s *Server) {
 		s.timeout = timeout
@@ -42,7 +53,7 @@ func Timeout(timeout time.Duration) ServerOption {
 // Middleware with service middleware option.
 func Middleware(m ...middleware.Middleware) ServerOption {
 	return func(o *Server) {
-		o.Ms = m
+		o.ms = m
 	}
 }
 
@@ -62,10 +73,12 @@ func ResponseEncoder(en EncodeResponseFunc) ServerOption {
 func NewServer(opts ...ServerOption) *Server {
 	r := gin.Default()
 	srv := &Server{
-		Engine: r,
-		port:   8080,
-		Enc:    DefaultResponseEncoder,
-		sigs:   []os.Signal{syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT},
+		Engine:  r,
+		port:    8080,
+		Enc:     DefaultResponseEncoder,
+		sigs:    []os.Signal{syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT},
+		timeout: 10 * time.Second,
+		ctx:     context.TODO(),
 	}
 
 	for _, o := range opts {
@@ -78,6 +91,7 @@ func NewServer(opts ...ServerOption) *Server {
 func (s *Server) Run() error {
 	ctx := context.TODO()
 	eg, ctx := errgroup.WithContext(ctx)
+	//s.Engine.Handlers
 	srv := &http.Server{
 		//Addr:    fmt.Sprintf(":%v", s.port),
 		Handler: s.Engine,
@@ -85,12 +99,25 @@ func (s *Server) Run() error {
 	}
 	s.srv = srv
 	eg.Go(func() error { return srv.ListenAndServe() })
+	if s.openApi {
+		eg.Go(func() error {
+			openAPIhandler := openapiv2.NewHandler()
+			swa := &http.Server{
+				Addr:    ":8081",
+				Handler: openAPIhandler,
+			}
+			s.apiSrv = swa
+			log.Printf("open http://127.0.0.1:8081/q/swagger-ui#/")
+			return swa.ListenAndServe()
+		})
+	}
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, s.sigs...)
 	eg.Go(func() error {
 		for {
 			select {
 			case <-ctx.Done():
+				log.Printf("Shutdown Server err ...")
 				return ctx.Err()
 			case <-c:
 				log.Printf("Shutdown Server ...")
@@ -111,8 +138,12 @@ func (s *Server) Run() error {
 // Stop 停止
 func (s *Server) Stop() error {
 	// 延迟关闭服务器
-	ctx, cancel := context.WithTimeout(context.TODO(), s.timeout)
+	log.Printf("timeout:%v\n", s.timeout)
+	ctx, cancel := context.WithTimeout(s.ctx, s.timeout)
 	defer cancel()
+	if s.apiSrv != nil {
+		s.apiSrv.Shutdown(context.TODO())
+	}
 	if err := s.srv.Shutdown(ctx); err != nil {
 		log.Fatal("Server Shutdown:", err)
 		return err
@@ -127,5 +158,5 @@ func (s *Server) Route(httpMethod, relativePath string, handlers ...gin.HandlerF
 }
 
 func (s *Server) Middleware(h middleware.Handler) middleware.Handler {
-	return middleware.Chain(s.Ms...)(h)
+	return middleware.Chain(s.ms...)(h)
 }
