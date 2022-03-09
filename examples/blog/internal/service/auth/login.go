@@ -23,6 +23,7 @@ func NewLoginService(log *zap.Logger) *LoginService {
 func (s *LoginService) GetToken(ctx context.Context, req *pb.GetTokenRequest) (*pb.GetTokenReply, error) {
 	t := time.Now()
 	fmt.Println(req)
+	s.log.Info("msg")
 	return &pb.GetTokenReply{
 		Token:     "here with return a string token ",
 		TokenType: "Bearer",
