@@ -7,18 +7,38 @@
 package main
 
 import (
+	"github.com/china-xs/gin-tpl/examples/blog/internal/log"
 	"github.com/china-xs/gin-tpl/examples/blog/internal/server"
+	"github.com/china-xs/gin-tpl/examples/blog/internal/service"
 	"github.com/china-xs/gin-tpl/examples/blog/internal/service/auth"
+	"github.com/china-xs/gin-tpl/pkg/config"
+	"github.com/google/wire"
 )
 
 // Injectors from wire.go:
 
 // cf config path
-func initApp() (*server.Route, func(), error) {
-	loginService := auth.NewLoginService()
+func initApp(path string) (*server.Route, func(), error) {
+	viper, err := config.New(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	options, err := log.NewOptions(viper)
+	if err != nil {
+		return nil, nil, err
+	}
+	logger, err := log.New(options)
+	if err != nil {
+		return nil, nil, err
+	}
+	loginService := auth.NewLoginService(logger)
 	route := &server.Route{
 		SrvLogin: loginService,
 	}
 	return route, func() {
 	}, nil
 }
+
+// wire.go:
+
+var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, server.InitRouteSet, service.ProviderSet)
