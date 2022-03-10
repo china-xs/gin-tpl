@@ -9,7 +9,10 @@ package main
 import (
 	"flag"
 	tpl "github.com/china-xs/gin-tpl"
+	"github.com/china-xs/gin-tpl/examples/blog/internal/server"
+	"github.com/china-xs/gin-tpl/middleware/logger"
 	"github.com/china-xs/gin-tpl/middleware/validate"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -27,10 +30,22 @@ var configFile = flag.String("f", "../../configs/app.yaml", "set config file whi
 
 func main() {
 	flag.Parse()
-	//tpl.
+	app, fc, err := initApp(*configFile)
+	if err != nil {
+		panic(err)
+	}
+	defer fc()
+	if err := app.Run(); err != nil {
+		panic(err)
+	}
+
+}
+
+func newApp(route server.Route, log *zap.Logger) *tpl.Server {
 	var ops []tpl.ServerOption
 	ms := tpl.Middleware(
 		validate.Validator(),
+		logger.Logger(log),
 	)
 	ops = append(ops,
 		ms,                // 中间件
@@ -40,16 +55,6 @@ func main() {
 		//tpl.Port(9090),
 	)
 	app := tpl.NewServer(ops...)
-
-	route, fc, err := initApp(*configFile)
-	if err != nil {
-		panic(err)
-	}
-	// 初始化 路由
 	route.InitRoute(app)
-	defer fc()
-	if err := app.Run(); err != nil {
-		panic(err)
-	}
-
+	return app
 }

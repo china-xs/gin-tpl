@@ -7,6 +7,7 @@
 package main
 
 import (
+	"github.com/china-xs/gin-tpl"
 	"github.com/china-xs/gin-tpl/examples/blog/internal/server"
 	"github.com/china-xs/gin-tpl/examples/blog/internal/service"
 	"github.com/china-xs/gin-tpl/examples/blog/internal/service/auth"
@@ -20,7 +21,7 @@ import (
 // Injectors from wire.go:
 
 // cf config path
-func initApp(path string) (*server.Route, func(), error) {
+func initApp(path string) (*gin_tpl.Server, func(), error) {
 	viper, err := config.New(path)
 	if err != nil {
 		return nil, nil, err
@@ -52,10 +53,11 @@ func initApp(path string) (*server.Route, func(), error) {
 		return nil, nil, err
 	}
 	loginService := auth.NewLoginService(logger, gormDB, client)
-	route := &server.Route{
+	route := server.Route{
 		SrvLogin: loginService,
 	}
-	return route, func() {
+	gin_tplServer := newApp(route, logger)
+	return gin_tplServer, func() {
 		cleanup()
 	}, nil
 }

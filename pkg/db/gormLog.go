@@ -28,7 +28,7 @@ var (
 	infoStr      = "%s\n[info] "
 	warnStr      = "%s\n[warn] "
 	errStr       = "%s\n[error] "
-	traceStr     = "%s\n[%.3fms] [rows:%v] %s"
+	traceStr     = "[%.3fms] [rows:%v] %s"
 	traceWarnStr = "%s %s\n[%.3fms] [rows:%v] %s"
 	traceErrStr  = "%s %s\n[%.3fms] [rows:%v] %s"
 )
@@ -158,13 +158,15 @@ func (l GLog) Trace(ctx context.Context, begin time.Time, fc func() (string, int
 		if rows == -1 {
 			l.zapLog.Info(
 				msgKey,
-				zap.String(msgInfo, fmt.Sprintf(traceStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, "-", sql)),
+				//utils.FileWithLineNum()
+				zap.String(msgInfo, fmt.Sprintf(traceStr, float64(elapsed.Nanoseconds())/1e6, "-", sql)),
 				trace,
 			)
 		} else {
 			l.zapLog.Info(
 				msgKey,
-				zap.String(msgInfo, fmt.Sprintf(traceStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, rows, sql)),
+				//utils.FileWithLineNum()
+				zap.String(msgInfo, fmt.Sprintf(traceStr, float64(elapsed.Nanoseconds())/1e6, rows, sql)),
 				trace,
 			)
 		}
