@@ -32,7 +32,8 @@ func _Login_GetToken0_Gin_Handler(s *gin_tpl.Server, srv LoginGinServer) func(c 
 			return
 		}
 		h := s.Middleware(func(c *gin.Context, req interface{}) (interface{}, error) {
-			return srv.GetToken(c, req.(*GetTokenRequest))
+			ctx := c.Request.Context()
+			return srv.GetToken(ctx, req.(*GetTokenRequest))
 		})
 		out, err := h(c, &in)
 		s.Enc(c, out, err)
@@ -52,7 +53,8 @@ func _Login_GetInfo0_Gin_Handler(s *gin_tpl.Server, srv LoginGinServer) func(c *
 			return
 		}
 		h := s.Middleware(func(c *gin.Context, req interface{}) (interface{}, error) {
-			return srv.GetInfo(c, req.(*GetInfoRequest))
+			ctx := c.Request.Context()
+			return srv.GetInfo(ctx, req.(*GetInfoRequest))
 		})
 		out, err := h(c, &in)
 		s.Enc(c, out, err)

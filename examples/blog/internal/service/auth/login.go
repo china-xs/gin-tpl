@@ -5,8 +5,9 @@ import (
 	"fmt"
 	pb "github.com/china-xs/gin-tpl/examples/blog/api/auth"
 	"github.com/china-xs/gin-tpl/examples/blog/internal/data/dao/query"
+	"github.com/china-xs/gin-tpl/pkg/log"
 	"github.com/go-redis/redis/v8"
-	otelTrace "go.opentelemetry.io/otel/trace"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
@@ -30,19 +31,20 @@ func NewLoginService(log *zap.Logger, db *gorm.DB, rdb *redis.Client) *LoginServ
 
 func (s *LoginService) GetToken(ctx context.Context, req *pb.GetTokenRequest) (*pb.GetTokenReply, error) {
 	t := time.Now()
-	//s.redis.Get()
-	var trace string
-	if span := otelTrace.SpanContextFromContext(ctx); span.HasTraceID() {
-		trace = span.TraceID().String()
-	}
-	fmt.Printf("traceId:%v\n", trace)
 	dept := query.Use(s.db).OaDepartments
 	res, err := dept.WithContext(ctx).Where(dept.ID.Eq(1)).First()
-	if err != nil {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
+	lg := s.log.With(log.WithCtx(ctx))
+	lg.Info("基础信息")
+	lg.Error("错误信息")
+	lg.Warn("警告信息")
 	fmt.Printf("dept:%v\n", res)
-
+	key := "gin-tpl:tmp"
+	if t, err := s.redis.Exists(ctx, key).Result(); err != nil {
+		fmt.Printf("redis:%v\n", t)
+	}
 	return &pb.GetTokenReply{
 		Token:     "here with return a string token ",
 		TokenType: "Bearer",
