@@ -2,7 +2,7 @@
 // @author: xs
 // @date: 2022/3/9
 // @Description: log 重写gorm logger 日志模块 仅写操作日志
-package log
+package db
 
 import (
 	"context"
@@ -40,8 +40,8 @@ type GLog struct {
 }
 
 type GLOptions struct {
-	Level         logger.LogLevel
-	SlowThreshold time.Duration // 慢查询阀值
+	Level         logger.LogLevel `yaml:"level"`
+	SlowThreshold time.Duration   `yaml:"slowTime"` // 慢查询阀值
 }
 
 func NewGLOpts(v *viper.Viper) (*GLOptions, error) {
@@ -49,7 +49,7 @@ func NewGLOpts(v *viper.Viper) (*GLOptions, error) {
 		err error
 		o   = new(GLOptions)
 	)
-	if err = v.UnmarshalKey("log", o); err != nil {
+	if err = v.UnmarshalKey("db", o); err != nil {
 		return nil, err
 	}
 

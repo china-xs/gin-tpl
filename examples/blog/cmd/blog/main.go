@@ -37,7 +37,7 @@ func main() {
 		tpl.OpenApi(true), //在线文档
 		tpl.Timeout(5*time.Second),
 		tpl.Name("gin-blog"),
-		tpl.Port(9090),
+		//tpl.Port(9090),
 	)
 	app := tpl.NewServer(ops...)
 

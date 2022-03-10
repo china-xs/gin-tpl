@@ -5,13 +5,18 @@
 package log
 
 import (
+	"context"
 	"github.com/google/wire"
 	"github.com/spf13/viper"
+	otelTrace "go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"os"
+	"time"
 )
+
+const msgTrace = "trace_id"
 
 // Options is log configuration struct
 type Options struct {
@@ -59,7 +64,22 @@ func New(o *Options) (*zap.Logger, error) {
 
 	// file core 采用jsonEncoder
 	cores := make([]zapcore.Core, 0, 2)
-	je := zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:       "time",
+		LevelKey:      "level",
+		NameKey:       "logger", // used by logger.Named(key); optional; useless
+		MessageKey:    "msg",
+		StacktraceKey: "stacktrace", // use by zap.AddStacktrace; optional; useless
+		LineEnding:    zapcore.DefaultLineEnding,
+		EncodeLevel:   zapcore.LowercaseLevelEncoder, // 小写编码器
+		EncodeTime: func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+			enc.AppendString(t.Format("2006-01-02 15:04:05"))
+		},
+		EncodeDuration: zapcore.MillisDurationEncoder,
+		//CallerKey:     "caller",// kratos 已经配置 caller zap 负责写入数据即可
+		//EncodeCaller:   zapcore.ShortCallerEncoder, // 全路径编码器
+	}
+	je := zapcore.NewJSONEncoder(encoderConfig)
 	cores = append(cores, zapcore.NewCore(je, fw, level))
 
 	// stdout core 采用 ConsoleEncoder
@@ -76,8 +96,18 @@ func New(o *Options) (*zap.Logger, error) {
 	return logger, err
 }
 
-//func (){
 //
-//}
+// WithCtx
+// @Description: 根据上下文
+// @param ctx
+// @return zap.Field
+//
+func WithCtx(ctx context.Context) zap.Field {
+	var trace string
+	if span := otelTrace.SpanContextFromContext(ctx); span.HasTraceID() {
+		trace = span.TraceID().String()
+	}
+	return zap.String(msgTrace, trace)
+}
 
 var ProviderSet = wire.NewSet(New, NewOptions)

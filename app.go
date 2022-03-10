@@ -10,6 +10,7 @@ import (
 	"github.com/china-xs/gin-tpl/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/go-kratos/swagger-api/openapiv2"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/sdk/resource"
 	traceSDK "go.opentelemetry.io/otel/sdk/trace"
@@ -90,6 +91,7 @@ func Port(port int32) ServerOption {
 //
 func NewServer(opts ...ServerOption) *Server {
 	r := gin.Default()
+
 	srv := &Server{
 		Engine:  r,
 		port:    8080,
@@ -105,6 +107,8 @@ func NewServer(opts ...ServerOption) *Server {
 			semconv.ServiceNameKey.String(srv.name),
 		)),
 	)
+	r.Use(otelgin.Middleware(srv.name))
+	//srv.Engine = r
 	//Tracer 全局注册
 	otel.SetTracerProvider(tp)
 
