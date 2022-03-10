@@ -11,7 +11,9 @@ import (
 	"github.com/china-xs/gin-tpl/examples/blog/internal/service"
 	"github.com/china-xs/gin-tpl/examples/blog/internal/service/auth"
 	"github.com/china-xs/gin-tpl/pkg/config"
+	"github.com/china-xs/gin-tpl/pkg/db"
 	"github.com/china-xs/gin-tpl/pkg/log"
+	"github.com/china-xs/gin-tpl/pkg/redis"
 	"github.com/google/wire"
 )
 
@@ -31,14 +33,33 @@ func initApp(path string) (*server.Route, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	loginService := auth.NewLoginService(logger)
+	dbOptions, err := db.New(viper)
+	if err != nil {
+		return nil, nil, err
+	}
+	gormDB, cleanup, err := db.NewDb(dbOptions, logger)
+	if err != nil {
+		return nil, nil, err
+	}
+	redisOptions, err := redis.NewOps(viper)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	client, err := redis.New(redisOptions)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	loginService := auth.NewLoginService(logger, gormDB, client)
 	route := &server.Route{
 		SrvLogin: loginService,
 	}
 	return route, func() {
+		cleanup()
 	}, nil
 }
 
 // wire.go:
 
-var providerSet = wire.NewSet(log.ProviderSet, config.ProviderSet, server.InitRouteSet, service.ProviderSet)
+var providerSet = wire.NewSet(log.ProviderSet, db.ProviderSet, redis.ProviderSet, config.ProviderSet, server.InitRouteSet, service.ProviderSet)
