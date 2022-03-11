@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
+	"io"
 	"os"
 	"runtime"
 	"strconv"
@@ -22,15 +23,17 @@ import (
 
 const msgTrace = "trace_id"
 const msgSpan = "span_id"
+const format = "2006-01-02 15:04:05"
+const formatFolder = "2006-01-02"
 
 // Options is log configuration struct
 type Options struct {
-	Filename   string
-	MaxSize    int
-	MaxBackups int
-	MaxAge     int
-	Level      string
-	Stdout     bool
+	Filename   string `yaml:"filename"`   // 文件名称
+	MaxSize    int    `yaml:"maxSize"`    // 最大文件
+	MaxBackups int    `yaml:"maxBackups"` // 最大备份数
+	MaxAge     int    `yaml:"maxAge"`     //保留时长天 days
+	Level      string `yaml:"level"`      // 日志登记 对应zap.level
+	Stdout     bool   `yaml:"stdout"`     // 是否在终端输出
 }
 
 func NewOptions(v *viper.Viper) (*Options, error) {
@@ -46,7 +49,7 @@ func NewOptions(v *viper.Viper) (*Options, error) {
 }
 
 // New for init zap log library
-func New(o *Options) (*zap.Logger, error) {
+func New(o *Options) (*zap.Logger, func(), error) {
 	var (
 		err    error
 		level  = zap.NewAtomicLevel()
@@ -55,16 +58,18 @@ func New(o *Options) (*zap.Logger, error) {
 
 	err = level.UnmarshalText([]byte(o.Level))
 	if err != nil {
-		return nil, err
+		return nil, func() {}, err
+	}
+	write := &lumberjack.Logger{ // concurrent-safed
+		Filename:   o.Filename,   // 文件路径
+		MaxSize:    o.MaxSize,    // MaxSize 兆字节
+		MaxBackups: o.MaxBackups, // 最多保留 300 个备份
+		MaxAge:     o.MaxAge,     // 最大时间，默认单位 day
+		LocalTime:  true,         // 使用本地时间
+		Compress:   false,        // 是否压缩 disabled by default
 	}
 
-	fw := zapcore.AddSync(&lumberjack.Logger{
-		Filename:   o.Filename,
-		MaxSize:    o.MaxSize, // megabytes
-		MaxBackups: o.MaxBackups,
-		MaxAge:     o.MaxAge, // days
-	})
-
+	fw := zapcore.AddSync(write)
 	cw := zapcore.Lock(os.Stdout)
 
 	// file core 采用jsonEncoder
@@ -97,8 +102,11 @@ func New(o *Options) (*zap.Logger, error) {
 	logger = zap.New(core)
 
 	zap.ReplaceGlobals(logger)
-
-	return logger, err
+	fc := func() {
+		logger.Sync()
+		write.Close()
+	}
+	return logger, fc, err
 }
 
 //
@@ -123,6 +131,18 @@ func WithCtx(ctx context.Context) []zap.Field {
 	)
 
 	return fields
+}
+
+func fileWire() (io.Writer, func()) {
+	l := &lumberjack.Logger{ // concurrent-safed
+		Filename:   "app.log",   // 文件路径
+		MaxSize:    1024 * 1024, // 1T // MaxSize 不设置单个文件最大为100M
+		MaxBackups: 0,           // 最多保留 300 个备份
+		MaxAge:     365,         // 最大时间，默认单位 day
+		LocalTime:  true,        // 使用本地时间
+		Compress:   false,       // 是否压缩 disabled by default
+	}
+	return l, func() { l.Close() }
 }
 
 func GetCaller() string {

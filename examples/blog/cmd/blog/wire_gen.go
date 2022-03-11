@@ -30,25 +30,29 @@ func initApp(path string) (*gin_tpl.Server, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	logger, err := log.New(options)
+	logger, cleanup, err := log.New(options)
 	if err != nil {
 		return nil, nil, err
 	}
 	dbOptions, err := db.New(viper)
 	if err != nil {
+		cleanup()
 		return nil, nil, err
 	}
-	gormDB, cleanup, err := db.NewDb(dbOptions, logger)
+	gormDB, cleanup2, err := db.NewDb(dbOptions, logger)
 	if err != nil {
+		cleanup()
 		return nil, nil, err
 	}
 	redisOptions, err := redis.NewOps(viper)
 	if err != nil {
+		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
 	client, err := redis.New(redisOptions)
 	if err != nil {
+		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
@@ -58,6 +62,7 @@ func initApp(path string) (*gin_tpl.Server, func(), error) {
 	}
 	gin_tplServer := newApp(route, logger)
 	return gin_tplServer, func() {
+		cleanup2()
 		cleanup()
 	}, nil
 }
