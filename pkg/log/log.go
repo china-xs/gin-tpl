@@ -6,6 +6,7 @@ package log
 
 import (
 	"context"
+	"github.com/go-resty/resty/v2"
 	"github.com/google/wire"
 	"github.com/spf13/viper"
 	otelTrace "go.opentelemetry.io/otel/trace"
@@ -13,6 +14,9 @@ import (
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"os"
+	"runtime"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -102,12 +106,55 @@ func New(o *Options) (*zap.Logger, error) {
 // @param ctx
 // @return zap.Field
 //
-func WithCtx(ctx context.Context) zap.Field {
+func WithCtx(ctx context.Context) []zap.Field {
 	var trace string
 	if span := otelTrace.SpanContextFromContext(ctx); span.HasTraceID() {
 		trace = span.TraceID().String()
 	}
-	return zap.String(msgTrace, trace)
+	var fields []zap.Field
+	fields = append(fields,
+		zap.String(msgTrace, trace),
+		zap.String("caller", GetCaller()),
+	)
+
+	return fields
+}
+
+func GetCaller() string {
+	depth := 3
+	_, file, line, _ := runtime.Caller(depth)
+	//fmt.Printf("file:%v\n",file)
+	// 处理数据库层
+	//if strings.HasSuffix(file, "dbLogger.go") {
+	//	return ""
+	//	//depth++
+	//	//_, file, line, _ = runtime.Caller(7)
+	//}
+	idx := strings.LastIndexByte(file, '/')
+	//fmt.Printf("caller:%v\n",idx)
+	return file[idx+1:] + ":" + strconv.Itoa(line)
+}
+
+func RestyLog(resp *resty.Response, field ...zap.Field) []zap.Field {
+	traceInfo := resp.Request.TraceInfo()
+	field = append(field,
+		zap.String("url", resp.Request.URL),
+		zap.Int("resp_status_code", resp.StatusCode()),
+		zap.String("resp_status", resp.Status()),
+		zap.String("resp_time", resp.Time().String()),
+		zap.String("resp_received", resp.ReceivedAt().GoString()),
+		zap.String("request_DNSLookup", traceInfo.DNSLookup.String()),
+		zap.String("request_ConnTime", traceInfo.ConnTime.String()),
+		zap.String("request_TCPConnTime", traceInfo.TCPConnTime.String()),
+		zap.String("request_TLSHandshake", traceInfo.TLSHandshake.String()),
+		zap.String("request_ServerTime", traceInfo.ServerTime.String()),
+		zap.String("request_ResponseTime", traceInfo.ResponseTime.String()),
+		zap.String("request_TotalTime", traceInfo.TotalTime.String()),
+		zap.Bool("request_IsConnReused", traceInfo.IsConnReused),
+		zap.Bool("request_IsConnWasIdle", traceInfo.IsConnWasIdle),
+		zap.String("request_ConnIdleTime", traceInfo.ConnIdleTime.String()),
+	)
+	return field
 }
 
 var ProviderSet = wire.NewSet(New, NewOptions)

@@ -30,10 +30,11 @@ type ServerOption func(*Server)
 //type siddleware(middleware.Handler) middleware.Handler
 
 type Server struct {
-	port    int32
+	port    int32 // 端口
 	Engine  *gin.Engine
-	timeout time.Duration
-	ms      []middleware.Middleware
+	timeout time.Duration           // 请求超时时长
+	ms      []middleware.Middleware // 中间价
+	filters []gin.HandlerFunc       // gin 中间件
 	Enc     EncodeResponseFunc
 	sigs    []os.Signal
 	srv     *http.Server
@@ -83,6 +84,12 @@ func Port(port int32) ServerOption {
 	}
 }
 
+func Filter(filters ...gin.HandlerFunc) ServerOption {
+	return func(o *Server) {
+		o.filters = filters
+	}
+}
+
 //
 // NewServer
 // @Description: gin 启动器
@@ -101,6 +108,13 @@ func NewServer(opts ...ServerOption) *Server {
 		ctx:     context.TODO(),
 		name:    "gin-app",
 	}
+	for _, o := range opts {
+		o(srv)
+	}
+
+	if len(srv.filters) > 0 {
+		r.Use(srv.filters...)
+	}
 	// 全局注册
 	tp := traceSDK.NewTracerProvider(
 		traceSDK.WithResource(resource.NewSchemaless(
@@ -111,10 +125,6 @@ func NewServer(opts ...ServerOption) *Server {
 	//srv.Engine = r
 	//Tracer 全局注册
 	otel.SetTracerProvider(tp)
-
-	for _, o := range opts {
-		o(srv)
-	}
 	return srv
 }
 
