@@ -1,4 +1,4 @@
-// Package log
+// Package db
 // @author: xs
 // @date: 2022/3/9
 // @Description: log 重写gorm logger 日志模块 仅写操作日志
@@ -7,10 +7,10 @@ package db
 import (
 	"context"
 	"fmt"
+	"github.com/china-xs/gin-tpl/pkg/log"
 	"github.com/google/wire"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	otelTrace "go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -63,7 +63,7 @@ func NewGL(o *GLOptions, l *zap.Logger) *GLog {
 	}
 }
 
-// 依赖
+// NewDBLog 依赖
 func NewDBLog(l *zap.Logger) *GLog {
 	return &GLog{
 		zapLog:        l,
@@ -82,32 +82,36 @@ func (l *GLog) LogMode(level logger.LogLevel) logger.Interface {
 // Info print info
 func (l GLog) Info(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Info {
-		trace := zap.String(msgTrace, getTrace(ctx))
-		l.zapLog.Info(msgKey,
+		var fields []zap.Field
+		fields = []zap.Field{
 			zap.String(msgInfo, fmt.Sprintf(infoStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)),
-			trace,
-		)
+		}
+		fields = append(fields, log.WithCtx(ctx)...)
+		l.zapLog.Info(msgKey, fields...)
 	}
 }
 
 // Warn print warn messages
 func (l GLog) Warn(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Warn {
-		trace := zap.String(msgTrace, getTrace(ctx))
-		l.zapLog.Warn(msgKey,
+		var fields []zap.Field
+		fields = []zap.Field{
 			zap.String(msgInfo, fmt.Sprintf(warnStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)),
-			trace,
-		)
+		}
+		fields = append(fields, log.WithCtx(ctx)...)
+		l.zapLog.Warn(msgKey, fields...)
 	}
 }
 
 // Error print error messages
 func (l GLog) Error(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Error {
-		trace := zap.String(msgTrace, getTrace(ctx))
-		l.zapLog.Error(msgKey, zap.String(msgInfo,
-			fmt.Sprintf(errStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)),
-			trace)
+		var fields []zap.Field
+		fields = []zap.Field{
+			zap.String(msgInfo, fmt.Sprintf(errStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)),
+		}
+		fields = append(fields, log.WithCtx(ctx)...)
+		l.zapLog.Error(msgKey, fields...)
 	}
 }
 
@@ -116,66 +120,36 @@ func (l GLog) Trace(ctx context.Context, begin time.Time, fc func() (string, int
 	if l.LogLevel <= logger.Silent {
 		return
 	}
-	trace := zap.String(msgTrace, getTrace(ctx))
-
+	var fields []zap.Field
+	fields = append(fields, log.WithCtx(ctx)...)
 	elapsed := time.Since(begin)
 	switch {
 	//|| !l.IgnoreRecordNotFoundError
 	case err != nil && l.LogLevel >= logger.Error && (!errors.Is(err, gorm.ErrRecordNotFound)):
 		sql, rows := fc()
 		if rows == -1 {
-			l.zapLog.Error(
-				msgKey,
-				zap.String(msgInfo, fmt.Sprintf(traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, "-", sql)),
-				trace,
-			)
+			fields = append(fields, zap.String(msgInfo, fmt.Sprintf(traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, "-", sql)))
 		} else {
-			l.zapLog.Error(
-				msgKey,
-				zap.String(msgInfo, fmt.Sprintf(traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, rows, sql)),
-				trace,
-			)
+			fields = append(fields, zap.String(msgInfo, fmt.Sprintf(traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, rows, sql)))
 		}
+		l.zapLog.Error(msgKey, fields...)
 	case elapsed > l.SlowThreshold && l.SlowThreshold != 0 && l.LogLevel >= logger.Warn:
 		sql, rows := fc()
 		slowLog := fmt.Sprintf("SLOW SQL >= %v", l.SlowThreshold)
 		if rows == -1 {
-			l.zapLog.Warn(
-				msgKey,
-				zap.String(msgInfo, fmt.Sprintf(traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, "-", sql)),
-				trace,
-			)
+			fields = append(fields, zap.String(msgInfo, fmt.Sprintf(traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, "-", sql)))
 		} else {
-			l.zapLog.Warn(
-				msgKey,
-				zap.String(msgInfo, fmt.Sprintf(traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, rows, sql)),
-				trace,
-			)
+			fields = append(fields, zap.String(msgInfo, fmt.Sprintf(traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, rows, sql)))
 		}
+		l.zapLog.Warn(msgKey, fields...)
 	case l.LogLevel == logger.Info:
 		sql, rows := fc()
 
 		if rows == -1 {
-			l.zapLog.Info(
-				msgKey,
-				//utils.FileWithLineNum()
-				zap.String(msgInfo, fmt.Sprintf(traceStr, float64(elapsed.Nanoseconds())/1e6, "-", sql)),
-				trace,
-			)
+			fields = append(fields, zap.String(msgInfo, fmt.Sprintf(traceStr, float64(elapsed.Nanoseconds())/1e6, "-", sql)))
 		} else {
-			l.zapLog.Info(
-				msgKey,
-				//utils.FileWithLineNum()
-				zap.String(msgInfo, fmt.Sprintf(traceStr, float64(elapsed.Nanoseconds())/1e6, rows, sql)),
-				trace,
-			)
+			fields = append(fields, zap.String(msgInfo, fmt.Sprintf(traceStr, float64(elapsed.Nanoseconds())/1e6, rows, sql)))
 		}
+		l.zapLog.Info(msgKey, fields...)
 	}
-}
-
-func getTrace(ctx context.Context) string {
-	if span := otelTrace.SpanContextFromContext(ctx); span.HasTraceID() {
-		return span.TraceID().String()
-	}
-	return ""
 }

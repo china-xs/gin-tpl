@@ -21,6 +21,7 @@ import (
 )
 
 const msgTrace = "trace_id"
+const msgSpan = "span_id"
 
 // Options is log configuration struct
 type Options struct {
@@ -107,13 +108,17 @@ func New(o *Options) (*zap.Logger, error) {
 // @return zap.Field
 //
 func WithCtx(ctx context.Context) []zap.Field {
-	var trace string
+	var traceId, spanId string
 	if span := otelTrace.SpanContextFromContext(ctx); span.HasTraceID() {
-		trace = span.TraceID().String()
+		traceId = span.TraceID().String()
+	}
+	if span := otelTrace.SpanContextFromContext(ctx); span.HasSpanID() {
+		spanId = span.SpanID().String()
 	}
 	var fields []zap.Field
 	fields = append(fields,
-		zap.String(msgTrace, trace),
+		zap.String(msgTrace, traceId),
+		zap.String(msgSpan, spanId),
 		zap.String("caller", GetCaller()),
 	)
 
@@ -124,12 +129,12 @@ func GetCaller() string {
 	depth := 3
 	_, file, line, _ := runtime.Caller(depth)
 	//fmt.Printf("file:%v\n",file)
-	// 处理数据库层
-	//if strings.HasSuffix(file, "dbLogger.go") {
-	//	return ""
-	//	//depth++
-	//	//_, file, line, _ = runtime.Caller(7)
-	//}
+	// gorm db 回调层
+	if strings.HasSuffix(file, "callbacks.go") {
+		return ""
+		//depth++
+		//_, file, line, _ = runtime.Caller(7)
+	}
 	idx := strings.LastIndexByte(file, '/')
 	//fmt.Printf("caller:%v\n",idx)
 	return file[idx+1:] + ":" + strconv.Itoa(line)
