@@ -82,36 +82,28 @@ func (l *GLog) LogMode(level logger.LogLevel) logger.Interface {
 // Info print info
 func (l GLog) Info(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Info {
-		var fields []zap.Field
-		fields = []zap.Field{
-			zap.String(msgInfo, fmt.Sprintf(infoStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)),
-		}
-		fields = append(fields, log.WithCtx(ctx)...)
-		l.zapLog.Info(msgKey, fields...)
+		log.WithCtx(ctx, l.zapLog).Info(msgKey, zap.String(
+			msgInfo,
+			fmt.Sprintf(infoStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)),
+		)
 	}
 }
 
 // Warn print warn messages
 func (l GLog) Warn(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Warn {
-		var fields []zap.Field
-		fields = []zap.Field{
+		log.WithCtx(ctx, l.zapLog).Warn(msgKey,
 			zap.String(msgInfo, fmt.Sprintf(warnStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)),
-		}
-		fields = append(fields, log.WithCtx(ctx)...)
-		l.zapLog.Warn(msgKey, fields...)
+		)
 	}
 }
 
 // Error print error messages
 func (l GLog) Error(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Error {
-		var fields []zap.Field
-		fields = []zap.Field{
+		log.WithCtx(ctx, l.zapLog).Error(msgKey,
 			zap.String(msgInfo, fmt.Sprintf(errStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)),
-		}
-		fields = append(fields, log.WithCtx(ctx)...)
-		l.zapLog.Error(msgKey, fields...)
+		)
 	}
 }
 
@@ -120,36 +112,33 @@ func (l GLog) Trace(ctx context.Context, begin time.Time, fc func() (string, int
 	if l.LogLevel <= logger.Silent {
 		return
 	}
-	var fields []zap.Field
-	fields = append(fields, log.WithCtx(ctx)...)
+	var field zap.Field
 	elapsed := time.Since(begin)
 	switch {
-	//|| !l.IgnoreRecordNotFoundError
 	case err != nil && l.LogLevel >= logger.Error && (!errors.Is(err, gorm.ErrRecordNotFound)):
 		sql, rows := fc()
 		if rows == -1 {
-			fields = append(fields, zap.String(msgInfo, fmt.Sprintf(traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, "-", sql)))
+			field = zap.String(msgInfo, fmt.Sprintf(traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, "-", sql))
 		} else {
-			fields = append(fields, zap.String(msgInfo, fmt.Sprintf(traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, rows, sql)))
+			field = zap.String(msgInfo, fmt.Sprintf(traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, rows, sql))
 		}
-		l.zapLog.Error(msgKey, fields...)
+		log.WithCtx(ctx, l.zapLog).Error(msgKey, field)
 	case elapsed > l.SlowThreshold && l.SlowThreshold != 0 && l.LogLevel >= logger.Warn:
 		sql, rows := fc()
 		slowLog := fmt.Sprintf("SLOW SQL >= %v", l.SlowThreshold)
 		if rows == -1 {
-			fields = append(fields, zap.String(msgInfo, fmt.Sprintf(traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, "-", sql)))
+			field = zap.String(msgInfo, fmt.Sprintf(traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, "-", sql))
 		} else {
-			fields = append(fields, zap.String(msgInfo, fmt.Sprintf(traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, rows, sql)))
+			field = zap.String(msgInfo, fmt.Sprintf(traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, rows, sql))
 		}
-		l.zapLog.Warn(msgKey, fields...)
+		log.WithCtx(ctx, l.zapLog).Warn(msgKey, field)
 	case l.LogLevel == logger.Info:
 		sql, rows := fc()
-
 		if rows == -1 {
-			fields = append(fields, zap.String(msgInfo, fmt.Sprintf(traceStr, float64(elapsed.Nanoseconds())/1e6, "-", sql)))
+			field = zap.String(msgInfo, fmt.Sprintf(traceStr, float64(elapsed.Nanoseconds())/1e6, "-", sql))
 		} else {
-			fields = append(fields, zap.String(msgInfo, fmt.Sprintf(traceStr, float64(elapsed.Nanoseconds())/1e6, rows, sql)))
+			field = zap.String(msgInfo, fmt.Sprintf(traceStr, float64(elapsed.Nanoseconds())/1e6, rows, sql))
 		}
-		l.zapLog.Info(msgKey, fields...)
+		log.WithCtx(ctx, l.zapLog).Info(msgKey, field)
 	}
 }
