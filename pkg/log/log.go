@@ -103,8 +103,8 @@ func New(o *Options) (*zap.Logger, func(), error) {
 
 	zap.ReplaceGlobals(logger)
 	fc := func() {
-		logger.Sync()
-		write.Close()
+		logger.Sync() // 缓存
+		write.Close() // os close
 	}
 	return logger, fc, err
 }
