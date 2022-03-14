@@ -27,8 +27,6 @@ import (
 // ServerOption is an HTTP server option.
 type ServerOption func(*Server)
 
-//type siddleware(middleware.Handler) middleware.Handler
-
 type Server struct {
 	port    int32 // 端口
 	Engine  *gin.Engine
@@ -58,36 +56,74 @@ func Timeout(timeout time.Duration) ServerOption {
 	}
 }
 
+//
 // Middleware with service middleware option.
+// @Description: 执行方法过滤器
+// @param m
+// @return ServerOption
+//
 func Middleware(m ...middleware.Middleware) ServerOption {
 	return func(o *Server) {
 		o.ms = m
 	}
 }
 
+//
+// Name
+// @Description: 服务名称
+// @param name
+// @return ServerOption
+//
 func Name(name string) ServerOption {
 	return func(o *Server) {
 		o.name = name
 	}
 }
 
+//
 // ResponseEncoder with response encoder.
+// @Description: 返回前端封装方法
+// @param en
+// @return ServerOption
+//
 func ResponseEncoder(en EncodeResponseFunc) ServerOption {
 	return func(o *Server) {
 		o.Enc = en
 	}
 }
 
+//
+// Port
+// @Description: 服务监听端口
+// @param port
+// @return ServerOption
+//
 func Port(port int32) ServerOption {
 	return func(o *Server) {
 		o.port = port
 	}
 }
 
+//
+// Filter
+// @Description: gin 全局中间件，无法覆盖链路中间件
+// @param filters
+// @return ServerOption
+//
 func Filter(filters ...gin.HandlerFunc) ServerOption {
 	return func(o *Server) {
 		o.filters = filters
 	}
+}
+
+//
+// Signal with exit signals.
+// @Description: 热重启信号
+// @param sigs
+// @return ServerOption
+//
+func Signal(sigs ...os.Signal) ServerOption {
+	return func(o *Server) { o.sigs = sigs }
 }
 
 //
@@ -111,11 +147,11 @@ func NewServer(opts ...ServerOption) *Server {
 	for _, o := range opts {
 		o(srv)
 	}
-
+	// 全局中间件
 	if len(srv.filters) > 0 {
 		r.Use(srv.filters...)
 	}
-	// 全局注册
+	// 链路全局注册
 	tp := traceSDK.NewTracerProvider(
 		traceSDK.WithResource(resource.NewSchemaless(
 			semconv.ServiceNameKey.String(srv.name),
@@ -135,7 +171,6 @@ func (s *Server) Run() error {
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%v", s.port),
 		Handler: s.Engine,
-		//Addr:    ":8080",
 	}
 	s.srv = srv
 	eg.Go(func() error {
@@ -202,4 +237,9 @@ func (s *Server) Route(httpMethod, relativePath string, handlers ...gin.HandlerF
 
 func (s *Server) Middleware(h middleware.Handler) middleware.Handler {
 	return middleware.Chain(s.ms...)(h)
+}
+
+func GetOperation(c *gin.Context) string {
+	operation, _ := c.Get("operation")
+	return operation.(string)
 }

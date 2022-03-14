@@ -35,9 +35,8 @@ func Logger(log *zap.Logger) middleware.Middleware {
 				zap.Int32("code", code),
 				zap.String("reason", reason),
 			)
-			fields = append(fields, plog.WithCtx(c.Request.Context())...)
 			// 当前仅记录 到api曾的出入参数，如需独立记录额外参数，请独立配置
-			log.Info("req-log", fields...)
+			plog.WithCtx(c.Request.Context(), log).Info("req-log", fields...)
 			return
 		}
 	}
