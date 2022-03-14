@@ -5,14 +5,13 @@ PB_FILES=$(shell cd api && find . -name *.pb.go)
 
 .PHONY: init
 init:
-	# gotag 书写方式不适合、转换查找文件路径处理错误
-	#go install github.com/srikrsna/protoc-gen-gotag
-	# pb.go 文件生成包
 	go install google.golang.org/protobuf/cmd/protoc-gen-go
 	# wire 安装
-	go install github.com/google/wire/cmd/wire
-	# 自动生成 gin 接口 自家用接口还要调整
+	go get github.com/google/wire/cmd/wire
+	#go install github.com/google/wire/cmd/wire
+
 	go install github.com/china-xs/gin-tpl/cmd/protoc-gen-go-gin@latest
+	go install github.com/china-xs/gin-tpl/cmd/proto@latest
 	# gin 绑定 参数增加tag
 	#go install github.com/favadi/protoc-go-inject-tag
 	go get -u github.com/favadi/protoc-go-inject-tag
@@ -27,7 +26,9 @@ init:
 # generate wire
 wire:
 	cd cmd/$(APP_RELATIVE_PATH) && wire
-
+.PHONY: run
+run:
+	cd cmd/$(APP_RELATIVE_PATH) && go run .
 
 .PHONY: tidy
 tidy:

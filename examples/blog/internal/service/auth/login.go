@@ -30,13 +30,14 @@ func NewLoginService(log *zap.Logger, db *gorm.DB, rdb *redis.Client) *LoginServ
 }
 
 func (s *LoginService) GetToken(ctx context.Context, req *pb.GetTokenRequest) (*pb.GetTokenReply, error) {
+	fmt.Printf("req:%+v\n", req)
 	t := time.Now()
 	dept := query.Use(s.db).OaDepartments
 	res, err := dept.WithContext(ctx).Where(dept.ID.Eq(5)).First()
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
-	lg := s.log.With(log.WithCtx(ctx)...)
+	lg := log.WithCtx(ctx, s.log)
 	lg.Info("基础信息")
 	lg.Error("错误信息")
 	lg.Warn("警告信息")
