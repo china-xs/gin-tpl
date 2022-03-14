@@ -91,7 +91,7 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s *gin_tpl.Server,srv {{$svrTyp
 			return 
 		}
 		{{- end}}
-		c.Set("operation", "/{{$svrName}}/{{.Name}}")
+		c.Set(gin_tpl.OperationKey, "/{{$svrName}}/{{.Name}}")
 		h := s.Middleware(func(c *gin.Context, req interface{}) (interface{}, error) {
 			ctx := c.Request.Context()
 			return srv.{{.Name}}(ctx, req.(*{{.Request}}))
