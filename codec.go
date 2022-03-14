@@ -18,6 +18,9 @@ type EncodeResponseFunc func(*gin.Context, interface{}, error)
 func DefaultResponseEncoder(c *gin.Context, obj interface{}, err error) {
 	// 默认输出逻辑
 	if err != nil {
+		if err.Error() == "EOF" {
+			err = errors.BadRequest("VALIDATE", "body is null")
+		}
 		se := errors.FromError(err)
 		body, err := json.Marshal(se)
 		w := c.Writer

@@ -109,13 +109,7 @@ func New(o *Options) (*zap.Logger, func(), error) {
 	return logger, fc, err
 }
 
-//
-// WithCtx
-// @Description: 根据上下文
-// @param ctx
-// @return zap.Field
-//
-func WithCtx(ctx context.Context) []zap.Field {
+func WithCtx(ctx context.Context, log *zap.Logger) *zap.Logger {
 	var traceId, spanId string
 	if span := otelTrace.SpanContextFromContext(ctx); span.HasTraceID() {
 		traceId = span.TraceID().String()
@@ -129,8 +123,7 @@ func WithCtx(ctx context.Context) []zap.Field {
 		zap.String(msgSpan, spanId),
 		zap.String("caller", GetCaller()),
 	)
-
-	return fields
+	return log.With(fields...)
 }
 
 func fileWire() (io.Writer, func()) {
