@@ -33,6 +33,7 @@ func (s *LoginService) GetToken(ctx context.Context, req *pb.GetTokenRequest) (*
 	fmt.Printf("req:%+v\n", req)
 	t := time.Now()
 	dept := query.Use(s.db).OaDepartments
+	dept.WithContext(ctx).Where(dept.ID.Eq(10)).Limit(1).Delete()
 	res, err := dept.WithContext(ctx).Where(dept.ID.Eq(5)).First()
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err

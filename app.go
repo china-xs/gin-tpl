@@ -24,6 +24,8 @@ import (
 	"time"
 )
 
+const OperationKey = "operation"
+
 // ServerOption is an HTTP server option.
 type ServerOption func(*Server)
 
@@ -240,6 +242,6 @@ func (s *Server) Middleware(h middleware.Handler) middleware.Handler {
 }
 
 func GetOperation(c *gin.Context) string {
-	operation, _ := c.Get("operation")
+	operation, _ := c.Get(OperationKey)
 	return operation.(string)
 }
