@@ -24,3 +24,8 @@ func (r Route) InitRoute(app *tpl.Server) (*tpl.Server, error) {
 	apiAuth.RegisterLoginGinServer(app, r.SrvLogin)
 	return app, nil
 }
+
+func registerGraph(app *tpl.Server) {
+	app.Route("GET", "/graphql")
+
+}
