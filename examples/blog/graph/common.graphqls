@@ -1,0 +1,12 @@
+
+# 分页模块
+type Pager{
+    # 页码
+    page:Int!
+    # 单页条数
+    rows:Int!
+    # 排序字段
+    sort:String!
+    # asc|desc
+    order:String!
+}
