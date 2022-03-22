@@ -62,8 +62,25 @@ message GetTokenRequest{
 	// @gotags: form:"password" uri:"username"
 	string password = 2[
 		(validate.rules).string = {
+//			ignore_empty:true,
 			min_bytes:2,// 长度要求带有校验、当前暂不支持直接修改错误信息
 			max_bytes:128,
+		}
+	];
+	int32 id = 3[
+		(validate.rules).int32={
+			gte: 18
+		}
+	];
+
+	string cd = 4[
+		(validate.rules).string={
+			len_bytes:100,
+		}
+	];
+	string urls = 5[
+		(validate.rules).string={
+			ip:true,
 		}
 	];
 
