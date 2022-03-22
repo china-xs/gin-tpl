@@ -12,6 +12,7 @@ import (
 	"github.com/china-xs/gin-tpl/examples/blog/internal/server"
 	"github.com/china-xs/gin-tpl/middleware/logger"
 	"github.com/china-xs/gin-tpl/middleware/validate"
+	"github.com/kataras/i18n"
 	"go.uber.org/zap"
 	"time"
 )
@@ -43,8 +44,12 @@ func main() {
 
 func newApp(route server.Route, log *zap.Logger) *tpl.Server {
 	var ops []tpl.ServerOption
+	I18n, err := i18n.New(i18n.Glob("../../configs/locales/*/*"), "en-US", "zh-CN")
+	if err != nil {
+		panic(err)
+	}
 	ms := tpl.Middleware(
-		validate.Validator(),
+		validate.Validator2I18n(I18n),
 		logger.Logger(log),
 	)
 	ops = append(ops,
