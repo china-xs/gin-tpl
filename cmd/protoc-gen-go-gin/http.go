@@ -20,6 +20,7 @@ const (
 	contextPkg = protogen.GoImportPath("context")
 	ginPkg     = protogen.GoImportPath("github.com/gin-gonic/gin")
 	ginSev     = protogen.GoImportPath("github.com/china-xs/gin-tpl")
+	ginBind    = protogen.GoImportPath("github.com/gin-gonic/gin/binding")
 )
 
 var methodSets = make(map[string]int)
@@ -48,8 +49,12 @@ func generateFileContent(gen *protogen.Plugin, file *protogen.File, g *protogen.
 	}
 	g.P("// This is a compile-time assertion to ensure that this generated file")
 	g.P("// is compatible with the kratos package it is being compiled against.")
-	g.P("// ", ginPkg.Ident(""), contextPkg.Ident(""), ginSev.Ident(""))
-
+	g.P("// ",
+		ginPkg.Ident(""),
+		contextPkg.Ident(""),
+		ginSev.Ident(""),
+		ginBind.Ident(""),
+	)
 	//g.P("var _ = new(", contextPackage.Ident("Context"), ")")
 	//g.P("var _ = ", bindingPackage.Ident("EncodeURL"))
 	//g.P("const _ = ", transportHTTPPackage.Ident("SupportPackageIsVersion1"))

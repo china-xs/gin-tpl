@@ -72,7 +72,7 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s *gin_tpl.Server,srv {{$svrTyp
 		var in {{.Request}}
 
 		{{- if .HasBody}}
-		if err := c.ShouldBind(&in{{.Body}}); err != nil {
+		if err := c.ShouldBindBodyWith(&in{{.Body}},binding.JSON); err != nil {
 			s.Enc(c,nil,err)
 			return 
 		}
