@@ -13,8 +13,8 @@ import (
 	"github.com/china-xs/gin-tpl/middleware/logger"
 	"github.com/china-xs/gin-tpl/middleware/validate"
 	"github.com/kataras/i18n"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"time"
 )
 
 // go build -ldflags "-X main.Version=x.y.z"
@@ -42,7 +42,7 @@ func main() {
 
 }
 
-func newApp(route server.Route, log *zap.Logger) *tpl.Server {
+func newApp(route server.Route, log *zap.Logger, v *viper.Viper) *tpl.Server {
 	var ops []tpl.ServerOption
 	I18n, err := i18n.New(i18n.Glob("../../configs/locales/*/*"), "en-US", "zh-CN")
 	if err != nil {
@@ -52,13 +52,11 @@ func newApp(route server.Route, log *zap.Logger) *tpl.Server {
 		validate.Validator2I18n(I18n),
 		logger.Logger(log),
 	)
-	ops = append(ops,
-		ms,                // 中间件
-		tpl.OpenApi(true), //在线文档
-		tpl.Timeout(5*time.Second),
-		tpl.Name("gin-blog"),
-		//tpl.Port(9090),
-	)
+	opts, err := tpl.NewSerOpts(v)
+	if err != nil {
+		panic(err)
+	}
+	ops = append(ops, ms, opts)
 	app := tpl.NewServer(ops...)
 	route.InitRoute(app)
 	return app

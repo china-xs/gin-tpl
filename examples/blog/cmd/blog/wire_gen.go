@@ -60,7 +60,7 @@ func initApp(path string) (*gin_tpl.Server, func(), error) {
 	route := server.Route{
 		SrvLogin: loginService,
 	}
-	gin_tplServer := newApp(route, logger)
+	gin_tplServer := newApp(route, logger, viper)
 	return gin_tplServer, func() {
 		cleanup2()
 		cleanup()
