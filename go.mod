@@ -3,7 +3,6 @@ module github.com/china-xs/gin-tpl
 go 1.17
 
 require (
-	github.com/99designs/gqlgen v0.17.1
 	github.com/envoyproxy/protoc-gen-validate v0.6.2
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-kratos/kratos/v2 v2.2.0
@@ -12,6 +11,7 @@ require (
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/google/wire v0.5.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.8.0
+	github.com/kataras/i18n v0.0.6
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/viper v1.10.1
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.29.0
@@ -30,7 +30,6 @@ require (
 )
 
 require (
-	github.com/agnivade/levenshtein v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
@@ -51,7 +50,6 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.4 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/kr/pretty v0.2.0 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
@@ -82,6 +80,8 @@ require (
 )
 
 require (
-	github.com/vektah/gqlparser/v2 v2.4.0
+	github.com/BurntSushi/toml v0.3.1 // indirect
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	golang.org/x/sys v0.0.0-20220307203707-22a9840ba4d7 // indirect
+	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect
 )
