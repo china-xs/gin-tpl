@@ -50,7 +50,7 @@ type Opts struct {
 	Name    string        `yaml:"name"`
 	Port    int32         `yaml:"port"`
 	Timeout time.Duration `yaml:"timeout"`
-	openApi bool          `yaml:"openApi"`
+	OpenApi bool          `yaml:"openApi"`
 }
 
 func NewSerOpts(v *viper.Viper) (serv ServerOption, err error) {
@@ -62,7 +62,7 @@ func NewSerOpts(v *viper.Viper) (serv ServerOption, err error) {
 		s.name = o.Name
 		s.port = o.Port
 		s.timeout = o.Timeout
-		s.openApi = o.openApi
+		s.openApi = o.OpenApi
 	}, nil
 }
 
