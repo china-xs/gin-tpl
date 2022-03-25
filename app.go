@@ -10,6 +10,8 @@ import (
 	"github.com/china-xs/gin-tpl/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/go-kratos/swagger-api/openapiv2"
+	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -42,6 +44,26 @@ type Server struct {
 	ctx     context.Context
 	openApi bool // 是否开启接口文档
 	name    string
+}
+
+type Opts struct {
+	Name    string        `yaml:"name"`
+	Port    int32         `yaml:"port"`
+	Timeout time.Duration `yaml:"timeout"`
+	openApi bool          `yaml:"openApi"`
+}
+
+func NewSerOpts(v *viper.Viper) (serv ServerOption, err error) {
+	o := new(Opts)
+	if err = v.UnmarshalKey("http", o); err != nil {
+		return nil, errors.Wrap(err, "unmarshal db option error")
+	}
+	return func(s *Server) {
+		s.name = o.Name
+		s.port = o.Port
+		s.timeout = o.Timeout
+		s.openApi = o.openApi
+	}, nil
 }
 
 //OpenApi 是否开启文档
