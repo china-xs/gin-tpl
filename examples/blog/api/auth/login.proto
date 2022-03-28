@@ -67,22 +67,6 @@ message GetTokenRequest{
 			max_bytes:128,
 		}
 	];
-	int32 id = 3[
-		(validate.rules).int32={
-			gte: 18
-		}
-	];
-
-	string cd = 4[
-		(validate.rules).string={
-			len_bytes:100,
-		}
-	];
-	string urls = 5[
-		(validate.rules).string={
-			ip:true,
-		}
-	];
 
 }
 

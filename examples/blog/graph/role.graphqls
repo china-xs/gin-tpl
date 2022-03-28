@@ -1,7 +1,0 @@
-
-type Role{
-    id:ID!#角色ID
-    name:String!#角色名称
-    remark:String!#角色描述
-    order_num:Int!#角色排序
-}
