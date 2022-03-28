@@ -21,6 +21,7 @@ const (
 	ginPkg  = protogen.GoImportPath("github.com/gin-gonic/gin")
 	ginSev  = protogen.GoImportPath("github.com/china-xs/gin-tpl")
 	ginBind = protogen.GoImportPath("github.com/gin-gonic/gin/binding")
+	pkgStr  = protogen.GoImportPath("strings")
 )
 
 var methodSets = make(map[string]int)
@@ -54,6 +55,7 @@ func generateFileContent(gen *protogen.Plugin, file *protogen.File, g *protogen.
 		//contextPkg.Ident(""),
 		ginSev.Ident(""),
 		ginBind.Ident(""),
+		pkgStr.Ident(""),
 	)
 	//g.P("var _ = new(", contextPackage.Ident("Context"), ")")
 	//g.P("var _ = ", bindingPackage.Ident("EncodeURL"))
