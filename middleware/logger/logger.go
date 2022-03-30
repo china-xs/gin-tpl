@@ -18,16 +18,22 @@ func Logger(log *zap.Logger) middleware.Middleware {
 		return func(c *gin.Context, req interface{}) (reply interface{}, err error) {
 			var code int32
 			var reason string
+			var body string
 			startTime := time.Now()
 			reply, err = handler(c, req)
 			if se := errors.FromError(err); se != nil {
 				code = se.Code
 				reason = se.Reason
 			}
+			// 记录body 数据
+			if bodyBytes, ok := c.Get(gin.BodyBytesKey); ok {
+				body = string(bodyBytes.([]byte))
+			}
 			var fields []zap.Field
 			fields = append(fields,
 				zap.String("url", c.Request.URL.String()),
 				zap.String("method", c.Request.Method),
+				zap.String("body", body),
 				zap.String("host", c.Request.Host),
 				zap.String("latency", time.Since(startTime).String()),
 				zap.String("args", extractArgs(req)),
@@ -35,6 +41,7 @@ func Logger(log *zap.Logger) middleware.Middleware {
 				zap.Int32("code", code),
 				zap.String("reason", reason),
 			)
+
 			// 当前仅记录 到api曾的出入参数，如需独立记录额外参数，请独立配置
 			plog.WithCtx(c.Request.Context(), log).Info("req-log", fields...)
 			return
