@@ -71,8 +71,7 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s *gin_tpl.Server,srv {{$svrTyp
 	return func(c *gin.Context) {
 		var in {{.Request}}
 		switch c.Request.Method {
-			case "POST":
-			case "PUT":
+			case "POST","PUT":
 			if err := c.ShouldBindBodyWith(&in{{.Body}},binding.JSON); err != nil {
 				s.Enc(c,nil,err)
 				return 
@@ -84,8 +83,7 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s *gin_tpl.Server,srv {{$svrTyp
 				}
 			}
 
-			case "GET":
-			case "DELETE":
+			case "GET","DELETE":
 			if err := c.ShouldBindQuery(&in); err != nil {
 				s.Enc(c,nil,err)
 				return 
