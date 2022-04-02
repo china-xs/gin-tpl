@@ -300,6 +300,20 @@ func TestGetValidateKey(t *testing.T) {
 				map[string]interface{}{},
 			},
 		}, {
+			name: "enum",
+			args: "invalid CreateUserRequest.UserType: value must be one of the defined enum values",
+			want: Want{
+				"CreateUserRequest.UserType.enum",
+				map[string]interface{}{},
+			},
+		}, {
+			name: "enum-in",
+			args: "invalid CreateUserRequest.UserType: value must be in list [1 2]",
+			want: Want{
+				"CreateUserRequest.UserType.in",
+				map[string]interface{}{"in": "[1 2]"},
+			},
+		}, {
 			name: "嵌套验证",
 			args: "invalid CreateUserRequest.Super: EMBEDDED MESSAGE FAILED VALIDATION | caused by: invalid Superman.Role: value is required",
 			want: Want{
