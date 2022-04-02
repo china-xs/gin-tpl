@@ -35,6 +35,7 @@ func Logger(log *zap.Logger) middleware.Middleware {
 				zap.String("method", c.Request.Method),
 				zap.String("body", body),
 				zap.String("host", c.Request.Host),
+				zap.String("ipv4", c.ClientIP()),
 				zap.String("latency", time.Since(startTime).String()),
 				zap.String("args", extractArgs(req)),
 				zap.String("reply", extractArgs(reply)),
