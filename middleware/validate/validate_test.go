@@ -70,7 +70,7 @@ func TestGetValidateKey(t *testing.T) {
 			want: Want{
 				"CreateUserRequest.Price.in",
 				map[string]interface{}{
-					"in": "[0.99 1 1.1]",
+					"in": []string{"0.99", "1", "1.1"},
 				},
 			},
 		}, {
@@ -79,7 +79,7 @@ func TestGetValidateKey(t *testing.T) {
 			want: Want{
 				"CreateUserRequest.Price.not_in",
 				map[string]interface{}{
-					"not_in": "[0.99 1 1.1]",
+					"not_in": []string{"0.99", "1", "1.1"},
 				},
 			},
 		},
@@ -100,6 +100,13 @@ func TestGetValidateKey(t *testing.T) {
 				map[string]interface{}{
 					"const": "闪灵",
 				},
+			},
+		}, {
+			name: "string.const1",
+			args: "invalid CreateUserRequest.Name: value must equal 王 宁",
+			want: Want{
+				"CreateUserRequest.Name.const",
+				map[string]interface{}{"const": "王 宁"},
 			},
 		}, {
 			name: "string.len",
@@ -216,7 +223,7 @@ func TestGetValidateKey(t *testing.T) {
 			want: Want{
 				"CreateUserRequest.Name.in",
 				map[string]interface{}{
-					"in": "[莫佳品 小米 华为]",
+					"in": []string{"莫佳品", "小米", "华为"},
 				},
 			},
 		}, {
@@ -225,7 +232,7 @@ func TestGetValidateKey(t *testing.T) {
 			want: Want{
 				"CreateUserRequest.Name.not_in",
 				map[string]interface{}{
-					"not_in": "[莫佳品 小米 华为]",
+					"not_in": []string{"莫佳品", "小米", "华为"},
 				},
 			},
 		}, {
@@ -307,11 +314,11 @@ func TestGetValidateKey(t *testing.T) {
 				map[string]interface{}{},
 			},
 		}, {
-			name: "enum-in",
+			name: "enum-in", // 定义UserType 枚举类型
 			args: "invalid CreateUserRequest.UserType: value must be in list [1 2]",
 			want: Want{
 				"CreateUserRequest.UserType.in",
-				map[string]interface{}{"in": "[1 2]"},
+				map[string]interface{}{"in": []string{"1", "2"}},
 			},
 		}, {
 			name: "嵌套验证",

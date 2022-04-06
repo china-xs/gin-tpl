@@ -58,9 +58,10 @@ func Validator2I18n(I18n *i18n.I18n) middleware.Middleware {
 func getValidateKey(str string) (string, map[string]interface{}) {
 	var msgKey string
 	params := make(map[string]interface{})
+	// 嵌套错误
 	if strings.Contains(str, "|") {
 		for _, v := range strings.Split(str, "|") {
-			if !strings.Contains(v, "invalid") {
+			if getInvalid(v) == -1 {
 				continue
 			}
 			child, cparams := getValidateKey(v)
@@ -79,25 +80,28 @@ func getValidateKey(str string) (string, map[string]interface{}) {
 		}
 		return msgKey, params
 	}
-	key := str[strings.Index(str, "invalid ")+8:]
-	if !strings.Contains(key, ":") {
+	l := len(str)
+
+	str = str[getInvalid(str)+1:]
+	i := strings.IndexRune(str, ':')
+	if i == -1 {
 		return msgKey, params
 	}
-	key = key[:strings.Index(key, ":")]
-	if strings.Contains(key, "[") {
-		params["key"] = key[strings.Index(key, "[")+1 : len(key)-1]
-		key = key[:strings.Index(key, "[")]
+	key := str[:i]
+	str = str[i+2:]
+	l = len(str)
+	if index := strings.IndexRune(key, '['); index != -1 {
+		params["key"] = key[index+1 : len(key)-1]
+		key = key[:index]
 	}
 	cdn := getCondition(str)
 	if cdn != nil {
 		switch cdn.Key {
 		case "between":
-			tmp := str[strings.Index(str, cdn.Mst)+len(cdn.Mst):]
-			r1 := strings.Contains(str, "runes")
-			r2 := strings.Contains(str, "bytes")
-			if r1 || r2 {
+			if t := str[l-16:]; t == "runes, inclusive" || t == "bytes, inclusive" {
+				tmp := str[cdn.Len:]
 				strSlice := strings.Split(tmp, " ")
-				if r1 {
+				if t == "runes, inclusive" {
 					params["min_len"] = strSlice[0]
 					params["max_len"] = strSlice[2]
 				} else {
@@ -106,46 +110,42 @@ func getValidateKey(str string) (string, map[string]interface{}) {
 				}
 			} else {
 				var tk string
-				if strings.Contains(str[strings.Index(str, cdn.Mst)+len(cdn.Mst):], "(") {
-					tk = "gt"
-				} else {
+				str = str[cdn.Len:]
+				l = len(str)
+				tk = "gt"
+				if str[:1] == "[" {
 					tk = "gte"
 				}
-				params[tk] = tmp[1:strings.Index(tmp, ",")]
-				if strings.Contains(str[strings.Index(str, cdn.Mst)+len(cdn.Mst):], ")") {
-					tk = "lt"
-				} else {
+				centerIndex := strings.IndexRune(str, ',')
+				params[tk] = str[1:centerIndex]
+				tk = "lt"
+				if str[l-1:] != ")" {
 					tk = "lte"
 				}
-				params[tk] = tmp[strings.Index(tmp, ",")+2 : len(tmp)-1]
+				params[tk] = str[centerIndex+2 : l-1]
 			}
-
-		case "lt", "gt", "lte", "gte", "in", "not_in":
-			tmp := str[strings.Index(str, cdn.Mst)+len(cdn.Mst):]
-			params[cdn.Key] = tmp
+		case "lt", "gt", "lte", "gte":
+			params[cdn.Key] = str[cdn.Len:]
+		case "in", "not_in":
+			tmp := str[cdn.Len+1 : l-1]
+			params[cdn.Key] = strings.Split(tmp, " ")
 		case "const":
-			tmp := str[strings.Index(str, cdn.Mst)+len(cdn.Mst):]
-			params["const"] = tmp
+			params["const"] = str[cdn.Len:]
 		case "len":
-			tmp := str[strings.Index(str, cdn.Mst)+len(cdn.Mst):]
-			strSlice := strings.Split(tmp, " ")
-			if strings.Contains(tmp, "bytes") {
+			if str[l-5:] == "bytes" {
 				cdn.Key = "len_bytes"
-			} else {
-				cdn.Key = "len"
 			}
-			params[cdn.Key] = strSlice[0]
+			params[cdn.Key] = str[cdn.Len : l-6]
 		case "min_bytes", "max_bytes":
-			tmp := str[strings.Index(str, cdn.Mst)+len(cdn.Mst):]
-			strSlice := strings.Split(tmp, " ")
-			if strSlice[1] == "runes" {
+			if str[l-5:] == "runes" {
 				if cdn.Key == "min_bytes" {
 					cdn.Key = "min_len"
 				} else {
 					cdn.Key = "max_len"
 				}
 			}
-			params[cdn.Key] = strSlice[0]
+			s := str[:l-6]
+			params[cdn.Key] = s[strings.LastIndex(s, " ")+1:]
 		case "repeated.between":
 			tmp := str[strings.Index(str, cdn.Mst)+len(cdn.Mst):]
 			strSlice := strings.Split(tmp, " ")
@@ -159,9 +159,16 @@ func getValidateKey(str string) (string, map[string]interface{}) {
 	} else {
 		msgKey = key
 	}
-	//fmt.Println("err:",str)
-	//fmt.Println("params",params)
 	return msgKey, params
+}
+
+func getInvalid(str string) int {
+	if str[:8] == "invalid " {
+		return 7
+	} else if str[:19] == " caused by: invalid" {
+		return 19
+	}
+	return -1
 }
 
 func getCondition(str string) *msgkey {
@@ -173,58 +180,51 @@ func getCondition(str string) *msgkey {
 	return nil
 }
 
-func getValidate(str string) string {
-	for _, v := range vts {
-		if ok := strings.Contains(str, v.Mst); ok {
-			return v.Key
-		}
-	}
-	return ""
-}
-
 type msgkey struct {
 	Mst string
 	Key string
+	Len int
 }
 
 // 新增 key 需要注意类型
 var vts = []msgkey{
-	{Mst: "value must be greater than or equal to ", Key: "gte"},
-	{Mst: "value must be greater than ", Key: "gt"},
-	{Mst: "value must be less than or equal to ", Key: "lte"},
-	{Mst: "value must be less than ", Key: "lt"},
-	{Mst: "value must be outside range ", Key: "between"}, // 没遇到
-	{Mst: "value must be inside range ", Key: "between"},
+	{Mst: "value must be greater than or equal to ", Key: "gte", Len: 39},
+	{Mst: "value must be greater than ", Key: "gt", Len: 27},
+	{Mst: "value must be less than or equal to ", Key: "lte", Len: 36},
+	{Mst: "value must be less than ", Key: "lt", Len: 24},
+	{Mst: "value must be outside range ", Key: "between", Len: 28}, // 没遇到
+	{Mst: "value must be inside range ", Key: "between", Len: 27},
 
-	{Mst: "value length must be at least ", Key: "min_bytes"},
-	{Mst: "value length must be at most ", Key: "max_bytes"},
-	{Mst: "value length must be between ", Key: "between"},
-	{Mst: "value length must be ", Key: "len"},
-	{Mst: "value does not match regex pattern", Key: "pattern"},
-	{Mst: "value does not have prefix", Key: "prefix"},
-	{Mst: "value does not have suffix", Key: "suffix"},
-	{Mst: "value does not contain substring", Key: "contains"},
-	{Mst: "value contains substring", Key: "not_contains"},
-	{Mst: "value must be a valid IP address", Key: "ip"},
-	{Mst: "value must be a valid IPv4 address", Key: "ipv4"},
-	{Mst: "value must be a valid IPv6 address", Key: "ipv6"},
-	{Mst: "value must equal ", Key: "const"},
-	{Mst: "value must be one of the defined enum values", Key: "enum"},
-	{Mst: "value must be in list ", Key: "in"},
-	{Mst: "value must not be in list ", Key: "not_in"},
-	{Mst: "value is required", Key: "required"},
+	{Mst: "value length must be at least ", Key: "min_bytes", Len: 30},
+	{Mst: "value length must be at most ", Key: "max_bytes", Len: 29},
+	{Mst: "value length must be between ", Key: "between", Len: 29},
+
+	{Mst: "value length must be ", Key: "len", Len: 21}, // 禁止添加len_bytes
+
+	{Mst: "value does not match regex pattern", Key: "pattern", Len: 34},
+	{Mst: "value does not have prefix", Key: "prefix", Len: 26},
+	{Mst: "value does not have suffix", Key: "suffix", Len: 26},
+	{Mst: "value does not contain substring", Key: "contains", Len: 32},
+	{Mst: "value contains substring", Key: "not_contains", Len: 24},
+	{Mst: "value must be a valid IP address", Key: "ip", Len: 32},
+	{Mst: "value must be a valid IPv4 address", Key: "ipv4", Len: 34},
+	{Mst: "value must be a valid IPv6 address", Key: "ipv6", Len: 34},
+	{Mst: "value must equal ", Key: "const", Len: 17},
+	{Mst: "value must be one of the defined enum values", Key: "enum", Len: 44},
+	{Mst: "value must be in list ", Key: "in", Len: 22},
+	{Mst: "value must not be in list ", Key: "not_in", Len: 26},
+	{Mst: "value is required", Key: "required", Len: 17},
 	// repeated 数组规则
-	{Mst: "repeated value must contain unique items", Key: "repeated.unique"},
-	{Mst: "value must contain exactly ", Key: "repeated.min_items"},      // 没遇到来
-	{Mst: "value must contain at least", Key: "repeated.min_items"},      // 数组长度小于最小长度
-	{Mst: "value must contain no more than ", Key: "repeated.max_items"}, //没遇到
-	{Mst: "value must contain no more than ", Key: "repeated.max_items"}, // 数组长度超过最大只
-	{Mst: "value must contain between ", Key: "repeated.between"},        // 区间
+	{Mst: "repeated value must contain unique items", Key: "repeated.unique", Len: 40},
+	{Mst: "value must contain exactly ", Key: "repeated.min_items", Len: 27},      // 没遇到来
+	{Mst: "value must contain at least", Key: "repeated.min_items", Len: 27},      // 数组长度小于最小长度
+	{Mst: "value must contain no more than ", Key: "repeated.max_items", Len: 32}, // 数组长度超过最大只
+	{Mst: "value must contain between ", Key: "repeated.between", Len: 27},        // 区间
 
-	{Mst: "value must be a valid email address", Key: "email"},
-	{Mst: "value must be a valid hostname, or ip address", Key: "address"}, //优先级比 hostname 高
-	{Mst: "value must be a valid hostname", Key: "hostname"},
-	{Mst: "value must be absolute", Key: "uri"},
-	{Mst: "value must be a valid URI", Key: "url"},
-	{Mst: "value must be a valid UUID", Key: "uuid"},
+	{Mst: "value must be a valid email address", Key: "email", Len: 35},
+	{Mst: "value must be a valid hostname, or ip address", Key: "address", Len: 45}, //优先级比 hostname 高
+	{Mst: "value must be a valid hostname", Key: "hostname", Len: 30},
+	{Mst: "value must be absolute", Key: "uri", Len: 22},
+	{Mst: "value must be a valid URI", Key: "url", Len: 25},
+	{Mst: "value must be a valid UUID", Key: "uuid", Len: 26},
 }
