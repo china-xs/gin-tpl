@@ -13,6 +13,14 @@ import (
 	"strings"
 )
 
+const (
+	_betweenRunes = "runes, inclusive"
+	_betweenBytes = "bytes, inclusive"
+	_betweenLen   = 16
+	_strLen       = 6 // bytes |runes + 空格
+
+)
+
 type validator interface {
 	Validate() error
 }
@@ -40,8 +48,10 @@ func Validator2I18n(I18n *i18n.I18n) middleware.Middleware {
 					if en == "" {
 						en = "zh-CN"
 					}
+					// validate 验证错误
 					fmt.Println("err:", err.Error())
 					i18nKey, params := getValidateKey(err.Error())
+					// 转换对应 i18n key && 提供对应参数
 					fmt.Printf("i18nKey:%v,params:%v\n", i18nKey, params)
 					msg := I18n.Tr(en, i18nKey, params)
 					if msg != "" {
@@ -90,6 +100,7 @@ func getValidateKey(str string) (string, map[string]interface{}) {
 	key := str[:i]
 	str = str[i+2:]
 	l = len(str)
+	// CreateUserRequest.Ids[4]
 	if index := strings.IndexRune(key, '['); index != -1 {
 		params["key"] = key[index+1 : len(key)-1]
 		key = key[:index]
@@ -98,10 +109,10 @@ func getValidateKey(str string) (string, map[string]interface{}) {
 	if cdn != nil {
 		switch cdn.Key {
 		case "between":
-			if t := str[l-16:]; t == "runes, inclusive" || t == "bytes, inclusive" {
+			if t := str[l-_betweenLen:]; t == _betweenRunes || t == _betweenBytes {
 				tmp := str[cdn.Len:]
 				strSlice := strings.Split(tmp, " ")
-				if t == "runes, inclusive" {
+				if t == _betweenRunes {
 					params["min_len"] = strSlice[0]
 					params["max_len"] = strSlice[2]
 				} else {
@@ -135,7 +146,7 @@ func getValidateKey(str string) (string, map[string]interface{}) {
 			if str[l-5:] == "bytes" {
 				cdn.Key = "len_bytes"
 			}
-			params[cdn.Key] = str[cdn.Len : l-6]
+			params[cdn.Key] = str[cdn.Len : l-_strLen]
 		case "min_bytes", "max_bytes":
 			if str[l-5:] == "runes" {
 				if cdn.Key == "min_bytes" {
@@ -144,11 +155,11 @@ func getValidateKey(str string) (string, map[string]interface{}) {
 					cdn.Key = "max_len"
 				}
 			}
-			s := str[:l-6]
+			s := str[:l-_strLen]
 			params[cdn.Key] = s[strings.LastIndex(s, " ")+1:]
 		case "repeated.between":
-			tmp := str[strings.Index(str, cdn.Mst)+len(cdn.Mst):]
-			strSlice := strings.Split(tmp, " ")
+			t := str[cdn.Len:]
+			strSlice := strings.Split(t, " ")
 			params["min_items"] = strSlice[0]
 			params["max_items"] = strSlice[2]
 		}
