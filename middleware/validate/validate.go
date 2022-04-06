@@ -65,6 +65,13 @@ func Validator2I18n(I18n *i18n.I18n) middleware.Middleware {
 	}
 }
 
+//
+// getValidateKey
+// @Description: https://github.com/envoyproxy/protoc-gen-validate 错误转i18n key
+// @param str
+// @return string
+// @return map[string]interface{}
+//
 func getValidateKey(str string) (string, map[string]interface{}) {
 	var msgKey string
 	params := make(map[string]interface{})
@@ -182,7 +189,7 @@ func getInvalid(str string) int {
 	return -1
 }
 
-func getCondition(str string) *msgkey {
+func getCondition(str string) *msgIndex {
 	for _, v := range vts {
 		if ok := strings.Contains(str, v.Mst); ok {
 			return &v
@@ -191,14 +198,14 @@ func getCondition(str string) *msgkey {
 	return nil
 }
 
-type msgkey struct {
+type msgIndex struct {
 	Mst string
 	Key string
 	Len int
 }
 
 // 新增 key 需要注意类型
-var vts = []msgkey{
+var vts = []msgIndex{
 	{Mst: "value must be greater than or equal to ", Key: "gte", Len: 39},
 	{Mst: "value must be greater than ", Key: "gt", Len: 27},
 	{Mst: "value must be less than or equal to ", Key: "lte", Len: 36},
