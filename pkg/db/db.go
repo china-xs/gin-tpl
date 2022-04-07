@@ -5,6 +5,7 @@
 package db
 
 import (
+	"context"
 	"fmt"
 	"github.com/google/wire"
 	"github.com/pkg/errors"
@@ -37,7 +38,7 @@ type DbOptions struct {
 	SkipDefaultTransaction bool            `yaml:"skipDefaultTransaction"` // true 开启禁用事物，大约 30%+ 性能提升
 }
 
-var ProviderSet = wire.NewSet(New, NewDb)
+var ProviderSet = wire.NewSet(New, NewDb, NewData, NewTransaction)
 
 func New(v *viper.Viper) (*DbOptions, error) {
 	var err error
@@ -97,4 +98,46 @@ func NewDb(c *DbOptions, log *zap.Logger) (*gorm.DB, func(), error) {
 		sqlDB.Close()
 	}
 	return gdb, cleanup, nil
+}
+
+// NewData .
+func NewData(db *gorm.DB, l *zap.Logger) (*Data, func(), error) {
+	d := &Data{
+		db:  db,
+		log: l,
+	}
+	return d, func() {
+	}, nil
+}
+
+// Data .
+type Data struct {
+	db  *gorm.DB
+	log *zap.Logger
+}
+
+type contextTxKey struct{}
+
+type Transaction interface {
+	ExecTx(context.Context, func(ctx context.Context) error) error
+}
+
+func (d *Data) ExecTx(ctx context.Context, fn func(ctx context.Context) error) error {
+	return d.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		ctx = context.WithValue(ctx, contextTxKey{}, tx)
+		return fn(ctx)
+	})
+}
+
+func (d *Data) DB(ctx context.Context) *gorm.DB {
+	tx, ok := ctx.Value(contextTxKey{}).(*gorm.DB)
+	if ok {
+		return tx
+	}
+	return d.db
+}
+
+// NewTransaction .暂时没必要这么用
+func NewTransaction(d *Data) Transaction {
+	return d
 }
