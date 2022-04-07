@@ -167,8 +167,29 @@ func getValidateKey(str string) (string, map[string]interface{}) {
 		case "repeated.between":
 			t := str[cdn.Len:]
 			strSlice := strings.Split(t, " ")
-			params["min_items"] = strSlice[0]
-			params["max_items"] = strSlice[2]
+			min := "min_items"
+			max := "max_items"
+			if strSlice[3] == "pairs," {
+				min = "min_pairs"
+				max = "max_pairs"
+				cdn.Key = "map.between"
+			}
+			params[min] = strSlice[0]
+			params[max] = strSlice[2]
+		case "repeated.min_items", "repeated.max_items":
+			str = str[cdn.Len:]
+			l = len(str)
+			pk := cdn.Key[9:]
+			if str[l-7:] == "pair(s)" {
+				if cdn.Key == "repeated.max_items" {
+					pk = "max_pairs"
+					cdn.Key = "map.max_pairs"
+				} else {
+					pk = "min_pairs"
+					cdn.Key = "map.min_pairs"
+				}
+			}
+			params[pk] = str[:l-8]
 		}
 		key += "." + cdn.Key
 	}
@@ -234,8 +255,9 @@ var vts = []msgIndex{
 	{Mst: "value is required", Key: "required", Len: 17},
 	// repeated 数组规则
 	{Mst: "repeated value must contain unique items", Key: "repeated.unique", Len: 40},
-	{Mst: "value must contain exactly ", Key: "repeated.min_items", Len: 27},      // 没遇到来
-	{Mst: "value must contain at least", Key: "repeated.min_items", Len: 27},      // 数组长度小于最小长度
+	{Mst: "value must contain exactly ", Key: "repeated.min_items", Len: 27}, // 没遇到来
+	//invalid CreateUserRequest.Map1: value must contain at least 3 pair(s)
+	{Mst: "value must contain at least ", Key: "repeated.min_items", Len: 28},     // 数组长度小于最小长度
 	{Mst: "value must contain no more than ", Key: "repeated.max_items", Len: 32}, // 数组长度超过最大只
 	{Mst: "value must contain between ", Key: "repeated.between", Len: 27},        // 区间
 

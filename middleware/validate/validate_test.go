@@ -300,6 +300,65 @@ func TestGetValidateKey(t *testing.T) {
 				map[string]interface{}{"min_items": "1", "max_items": "10"},
 			},
 		}, {
+			name: "repeated.min_items",
+			args: "invalid CreateUserRequest.Ids: value must contain at least 2 item(s)",
+			want: Want{
+				"CreateUserRequest.Ids.repeated.min_items",
+				map[string]interface{}{"min_items": "2"},
+			},
+		}, {
+			name: "map.min_pairs",
+			args: "invalid CreateUserRequest.Map1: value must contain at least 3 pair(s)",
+			want: Want{
+				"CreateUserRequest.Map1.map.min_pairs",
+				map[string]interface{}{"min_pairs": "3"},
+			},
+		}, {
+			name: "map.max_pairs",
+			args: "invalid CreateUserRequest.Map1: value must contain no more than 2 pair(s)",
+			want: Want{
+				"CreateUserRequest.Map1.map.max_pairs",
+				map[string]interface{}{"max_pairs": "2"},
+			},
+		}, {
+			name: "map.between",
+			args: "invalid CreateUserRequest.Map1: value must contain between 1 and 3 pairs, inclusive",
+			want: Want{
+				"CreateUserRequest.Map1.map.between",
+				map[string]interface{}{"max_pairs": "3", "min_pairs": "1"},
+			},
+		}, {
+			// map keys|values 无法根据错误返回定位属于keys错误|values错误
+			name: "map.keys",
+			args: "invalid CreateUserRequest.Map1[9]: value must be greater than or equal to 10",
+			want: Want{
+				// map<int32,string> x = 1;
+				//(validate.rules).map.keys.int32.gte = 10
+				"CreateUserRequest.Map1.gte",
+				map[string]interface{}{"key": "9", "gte": "10"},
+			},
+		}, {
+			name: "map.values",
+			args: "invalid CreateUserRequest.Map1[9]: value length must be at most 3 runes",
+			want: Want{
+				"CreateUserRequest.Map1.max_len",
+				map[string]interface{}{"key": "9", "max_len": "3"},
+			},
+		}, {
+			name: "map.int32.between 嵌套",
+			args: "invalid CreateUserRequest.Map1[100]: embedded message failed validation | caused by: invalid Role.Id: value must be inside range (10, 100]",
+			want: Want{
+				"CreateUserRequest.Map1.Role.Id.between",
+				map[string]interface{}{"gt": "10", "lte": "100", "key": "100"},
+			},
+		}, {
+			name: "map.string嵌套",
+			args: "invalid CreateUserRequest.Map1[100]: embedded message failed validation | caused by: invalid Role.Name: value length must be at least 10 bytes",
+			want: Want{
+				"CreateUserRequest.Map1.Role.Name.min_bytes",
+				map[string]interface{}{"key": "100", "min_bytes": "10"},
+			},
+		}, {
 			name: "required",
 			args: "invalid CreateUserRequest.Super: value is required",
 			want: Want{
