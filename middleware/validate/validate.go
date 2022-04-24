@@ -193,11 +193,7 @@ func getValidateKey(str string) (string, map[string]interface{}) {
 		}
 		key += "." + cdn.Key
 	}
-	if msgKey != "" {
-		msgKey += "." + key
-	} else {
-		msgKey = key
-	}
+	msgKey = key
 	return msgKey, params
 }
 
@@ -211,7 +207,18 @@ func getInvalid(str string) int {
 }
 
 func getCondition(str string) *msgIndex {
+	if strings.ToLower(str) == "embedded message failed validation" {
+		return nil
+	}
+	l := len(str)
 	for _, v := range vts {
+		if v.Len > l {
+			continue
+		}
+		if l >= v.Len && str[:v.Len] == v.Mst {
+			return &v
+		}
+		// 优化后基本不会走这个
 		if ok := strings.Contains(str, v.Mst); ok {
 			return &v
 		}

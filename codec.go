@@ -22,7 +22,8 @@ func DefaultResponseEncoder(c *gin.Context, obj interface{}, err error) {
 			err = errors.BadRequest("VALIDATE", "body is null")
 		}
 		se := errors.FromError(err)
-		body, err := json.Marshal(se)
+		var bufReply []byte
+		bufReply, err = json.Marshal(se)
 		w := c.Writer
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -30,7 +31,7 @@ func DefaultResponseEncoder(c *gin.Context, obj interface{}, err error) {
 		}
 		w.Header().Set("Content-Type", strings.Join([]string{"application", "json"}, "/"))
 		w.WriteHeader(int(se.Code))
-		_, _ = w.Write(body)
+		_, _ = w.Write(bufReply)
 	} else {
 		c.JSON(200, obj)
 	}
