@@ -14,6 +14,7 @@ import (
 	"github.com/google/wire"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+	otelTrace "go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"time"
 )
@@ -107,22 +108,57 @@ func (qm Options) OpenId2Ouid(ctx context.Context, openId string) (ouid string, 
 		if len(msg) == 0 {
 			msg = reply.Response.Message
 		}
-		err = errors.New(reply.Response.SubMessage)
+		err = errors.New(msg)
 		l.Error(LogKey, zap.Error(err), zap.String("reply", jsonStr))
 		return
 	}
 	return reply.Data, nil
 }
 
-func getParams(openid, seller, jn string) map[string]interface{} {
+//
+// OpenId2OuidV0
+// @Description: 老版本链路 description=链路ID
+// @receiver qm
+// @param ctx
+// @param openId
+// @return ouid
+// @return err
+//
+func (qm Options) OpenId2OuidV0(ctx context.Context, openId string) (ouid string, err error) {
+	var traceId string
+	if span := otelTrace.SpanContextFromContext(ctx); span.HasTraceID() {
+		traceId = span.TraceID().String()
+	}
 	paramMap := make(map[string]interface{})
 	paramMap["bizValue"] = "crm-互动"
-	paramMap["buyer"] = openid
-	paramMap["description"] = jn
+	paramMap["buyer"] = openId
+	paramMap["description"] = traceId
 	paramMap["eventType"] = "1"
-	paramMap["seller"] = seller
-	paramMap["target_app_key"] = "23226080"
-	return paramMap
+	paramMap["seller"] = qm.SellerId
+	paramMap["target_app_key"] = qm.TargetAppKey
+	jsonStr, err := qm.QmClient.Execute("qimen.taobao.miniapp.crm.connect", paramMap, fileMap)
+	var reply OpenId2OuidReply
+	l := log.WithCtx(ctx, qm.Log)
+	if err != nil {
+		l.Error(LogKey, zap.Error(err), zap.String("openId", openId))
+		return "", err
+	}
+	// {"response":{"flag":"failure","code":41,"message":"Invalid arguments","sub_message":"buyer(openId)有误:AAHagWGKANKwnl6niApyldHh","request_id":"16lo5im0is8iv"}}
+	// {"code":"0","data":"AAEzAT6jAAAN7QwAASEJK6lO","msg":"成功","success":true}
+	json.Unmarshal([]byte(jsonStr), &reply)
+	if reply.Response.Code > 0 || !reply.Success {
+		var msg string
+		msg = reply.Response.SubMessage
+		if len(msg) == 0 {
+			msg = reply.Response.Message
+		}
+		err = errors.New(msg)
+		l.Error(LogKey, zap.Error(err), zap.String("reply", jsonStr))
+		return
+	}
+	return reply.Data, nil
+
+	return
 }
 
 func (o Options) getToken() (jn string) {
