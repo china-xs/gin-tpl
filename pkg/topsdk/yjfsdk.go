@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/china-xs/gin-tpl/pkg/log"
+	"github.com/google/uuid"
 	"github.com/google/wire"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -39,6 +40,7 @@ type (
 
 	Qimen interface {
 		OpenId2Ouid(ctx context.Context, openId string) (ouid string, err error)
+		OpenId2OuidV0(ctx context.Context, openId string) (ouid string, err error)
 	}
 	OpenId2OuidReply struct {
 		Code      string      `json:"code"`
@@ -128,6 +130,9 @@ func (qm Options) OpenId2OuidV0(ctx context.Context, openId string) (ouid string
 	var traceId string
 	if span := otelTrace.SpanContextFromContext(ctx); span.HasTraceID() {
 		traceId = span.TraceID().String()
+	} else {
+		uid, _ := uuid.NewRandom()
+		traceId = uid.String()
 	}
 	paramMap := make(map[string]interface{})
 	paramMap["bizValue"] = "crm-互动"
