@@ -11,6 +11,8 @@ import (
 // is compatible with the kratos package it is being compiled against.
 const _ = errors.SupportPackageIsVersion1
 
+// 通用自定义错误信息码,非确定性或者
+
 func IsDefaultErr(err error) bool {
 	if err == nil {
 		return false
@@ -19,9 +21,13 @@ func IsDefaultErr(err error) bool {
 	return e.Reason == ErrorReason_DEFAULT_ERR.String() && e.Code == 400
 }
 
+// 通用自定义错误信息码,非确定性或者
+
 func ErrorDefaultErr(format string, args ...interface{}) *errors.Error {
 	return errors.New(400, ErrorReason_DEFAULT_ERR.String(), fmt.Sprintf(format, args...))
 }
+
+// 正常返回，不修改请求状态码
 
 func IsOkErr(err error) bool {
 	if err == nil {
@@ -30,6 +36,8 @@ func IsOkErr(err error) bool {
 	e := errors.FromError(err)
 	return e.Reason == ErrorReason_OK_ERR.String() && e.Code == 200
 }
+
+// 正常返回，不修改请求状态码
 
 func ErrorOkErr(format string, args ...interface{}) *errors.Error {
 	return errors.New(200, ErrorReason_OK_ERR.String(), fmt.Sprintf(format, args...))

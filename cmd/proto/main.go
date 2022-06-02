@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/china-xs/gin-tpl/cmd/proto/add"
+	"github.com/china-xs/gin-tpl/cmd/proto/project"
 	"github.com/china-xs/gin-tpl/cmd/proto/server"
 	"github.com/spf13/cobra"
 	"log"
@@ -12,6 +13,8 @@ const release = "v1.0.1"
 func init() {
 	rootCmd.AddCommand(add.CmdAdd)
 	rootCmd.AddCommand(server.CmdServer)
+	rootCmd.AddCommand(project.CmdServer)
+
 	//rootCmd.AddCommand(client.CmdClient)
 	//rootCmd.AddCommand(server.CmdServer)
 }
