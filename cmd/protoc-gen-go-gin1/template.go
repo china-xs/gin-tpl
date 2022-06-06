@@ -55,7 +55,7 @@ var httpTemplate = `
 {{$svrName := .ServiceName}}
 type {{.ServiceType}}GinServer interface {
 {{- range .MethodSets}}
-	{{.Name}}(context.Context, *{{.Request}}) (*{{.Reply}}, error)
+	{{.Name}}(*gin.Context, *{{.Request}}) (*{{.Reply}}, error)
 {{- end}}
 }
 
@@ -97,8 +97,7 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s *gin_tpl.Server,srv {{$svrTyp
 		{{- end}}
 		c.Set(gin_tpl.OperationKey, "/{{$svrName}}/{{.Name}}")
 		h := s.Middleware(func(c *gin.Context, req interface{}) (interface{}, error) {
-			ctx := c.Request.Context()
-			return srv.{{.Name}}(ctx, req.(*{{.Request}}))
+			return srv.{{.Name}}(c, req.(*{{.Request}}))
 		})
 		out, err := h(c, &in)
 		s.Enc(c,out,err)

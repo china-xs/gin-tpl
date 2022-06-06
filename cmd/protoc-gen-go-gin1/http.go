@@ -17,11 +17,11 @@ import (
 )
 
 const (
-	contextPkg = protogen.GoImportPath("context")
-	ginPkg     = protogen.GoImportPath("github.com/gin-gonic/gin")
-	ginSev     = protogen.GoImportPath("github.com/china-xs/gin-tpl")
-	ginBind    = protogen.GoImportPath("github.com/gin-gonic/gin/binding")
-	pkgStr     = protogen.GoImportPath("strings")
+	//contextPkg = protogen.GoImportPath("context")
+	ginPkg  = protogen.GoImportPath("github.com/gin-gonic/gin")
+	ginSev  = protogen.GoImportPath("github.com/china-xs/gin-tpl")
+	ginBind = protogen.GoImportPath("github.com/gin-gonic/gin/binding")
+	pkgStr  = protogen.GoImportPath("strings")
 )
 
 var methodSets = make(map[string]int)
@@ -52,7 +52,7 @@ func generateFileContent(gen *protogen.Plugin, file *protogen.File, g *protogen.
 	g.P("// is compatible with the kratos package it is being compiled against.")
 	g.P("// ",
 		ginPkg.Ident(""),
-		contextPkg.Ident(""),
+		//contextPkg.Ident(""),
 		ginSev.Ident(""),
 		ginBind.Ident(""),
 		pkgStr.Ident(""),
