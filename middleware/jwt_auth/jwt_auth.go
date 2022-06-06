@@ -6,10 +6,11 @@ package jwt_auth
 
 import (
 	"errors"
+	"github.com/china-xs/gin-tpl/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/golang-jwt/jwt/v4/request"
-	"net/http"
+	"strings"
 )
 
 const (
@@ -29,58 +30,82 @@ var (
 
 type (
 	AuthorizeOptions struct {
-		Callback UnauthorizedCallback
+		prefixPath    []string
+		path          map[string]struct{}
+		whitelistPath map[string]struct{}
 	}
 
-	// UnauthorizedCallback then callback
-	UnauthorizedCallback func(c *gin.Context, err error)
 	// AuthorizeOption defines the method to customize an AuthorizeOptions.
 	AuthorizeOption func(opts *AuthorizeOptions)
 )
 
-// Authorize is a jwt-token parser middleware.
-func Authorize(secret string, opts ...AuthorizeOption) gin.HandlerFunc {
-	var authOpts AuthorizeOptions
-	for _, opt := range opts {
-		opt(&authOpts)
+func NewJwtAuth() *AuthorizeOptions {
+	return &AuthorizeOptions{
+		prefixPath:    make([]string, 0),
+		path:          make(map[string]struct{}, 0),
+		whitelistPath: make(map[string]struct{}, 0),
 	}
+}
 
-	return func(c *gin.Context) {
-		//get token from http request
-		var token *jwt.Token
-		token, err := request.ParseFromRequest(
-			c.Request,
-			request.AuthorizationHeaderExtractor,
-			func(token *jwt.Token) (interface{}, error) {
-				return []byte(secret), nil
-			},
-			request.WithParser(newParser()))
+// Authorize is a jwt-token parser middleware.
+func (a *AuthorizeOptions) Authorize(secret string) middleware.Middleware {
+	return func(handler middleware.Handler) middleware.Handler {
+		return func(c *gin.Context, req interface{}) (reply interface{}, err error) {
+			path := c.GetString(gin_tpl.OperationKey)
 
-		if err != nil {
-			unauthorized(c, err, authOpts.Callback)
-			return
-		}
-
-		if !token.Valid {
-			unauthorized(c, ErrInvalidToken, authOpts.Callback)
-			return
-		}
-
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			unauthorized(c, ErrNoClaims, authOpts.Callback)
-			return
-		}
-
-		for k, v := range claims {
-			switch k {
-			case jwtAudience, jwtExpire, jwtId, jwtIssueAt, jwtIssuer, jwtNotBefore, jwtSubject:
-			default:
-				c.Set(k, v)
+			//whitelist
+			if _, exists := a.whitelistPath[path]; exists {
+				return handler(c, req)
 			}
-		}
 
-		c.Next()
+			//matched path && prefix path
+			hasPath := false
+			if _, exists := a.path[path]; !exists {
+				for _, p := range a.prefixPath {
+					if strings.HasPrefix(path, p) {
+						hasPath = true
+						break
+					}
+				}
+			}
+
+			if !hasPath {
+				return handler(c, req)
+			}
+
+			//get token from http request
+			var token *jwt.Token
+			token, err = request.ParseFromRequest(
+				c.Request,
+				request.AuthorizationHeaderExtractor,
+				func(token *jwt.Token) (interface{}, error) {
+					return []byte(secret), nil
+				},
+				request.WithParser(newParser()))
+
+			if err != nil {
+				return nil, err
+			}
+
+			if !token.Valid {
+				return nil, ErrInvalidToken
+			}
+
+			claims, ok := token.Claims.(jwt.MapClaims)
+			if !ok {
+				return nil, ErrNoClaims
+			}
+
+			for k, v := range claims {
+				switch k {
+				case jwtAudience, jwtExpire, jwtId, jwtIssueAt, jwtIssuer, jwtNotBefore, jwtSubject:
+				default:
+					c.Set(k, v)
+				}
+			}
+
+			return handler(c, req)
+		}
 	}
 }
 
@@ -89,20 +114,24 @@ func newParser() *jwt.Parser {
 	return jwt.NewParser(jwt.WithJSONNumber())
 }
 
-// setting unauthorized callback.
-func WithUnauthorizedCallback(callback UnauthorizedCallback) AuthorizeOption {
-	return func(opts *AuthorizeOptions) {
-		opts.Callback = callback
-	}
+// setting prefix paths
+func (a *AuthorizeOptions) Prefix(paths ...string) *AuthorizeOptions {
+	a.prefixPath = append(a.prefixPath, paths...)
+	return a
 }
 
-//unauthorized process
-func unauthorized(c *gin.Context, err error, callback UnauthorizedCallback) {
-	c.Abort()
-	if callback != nil {
-		callback(c, err)
-		return
+// setting whitelist paths
+func (a *AuthorizeOptions) Whitelist(paths ...string) *AuthorizeOptions {
+	for _, path := range paths {
+		a.whitelistPath[path] = struct{}{}
 	}
+	return a
+}
 
-	c.Writer.WriteHeader(http.StatusUnauthorized)
+// setting match paths
+func (a *AuthorizeOptions) Path(paths ...string) *AuthorizeOptions {
+	for _, path := range paths {
+		a.path[path] = struct{}{}
+	}
+	return a
 }
