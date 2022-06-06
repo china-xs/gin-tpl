@@ -7,9 +7,9 @@ package api_sign
 import (
 	"errors"
 	"fmt"
+	"github.com/china-xs/gin-tpl/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/parkingwang/go-sign"
-	"net/http"
 	"time"
 )
 
@@ -21,90 +21,79 @@ var (
 )
 
 type (
-	SignOptions struct {
-		Callback      UnsignedCallback
-		MustHasFields []string
-		Timeout       time.Duration
+	ApiSign struct {
+		prefixPath    []string
+		path          map[string]struct{}
+		whitelistPath map[string]struct{}
+		timeout       time.Duration
 	}
-
-	// UnSignedCallback then callback
-	UnsignedCallback func(c *gin.Context, err error)
-	// SignOption defines the method to customize an SignOptions.
-	SignOption func(opts *SignOptions)
 )
 
-//md5 signer only
-func SignVerifier(secret string, opts ...SignOption) gin.HandlerFunc {
-	var signOpts SignOptions
-	for _, opt := range opts {
-		opt(&signOpts)
-	}
-
-	return func(c *gin.Context) {
-		verifier := sign.NewGoVerifier()
-		if err := verifier.ParseQuery(c.Request.URL.RequestURI()); err != nil {
-			unsigned(c, fmt.Errorf("%s:%w", err.Error(), ErrParseQuery), signOpts.Callback)
-			return
-		}
-
-		//check needed fields
-		if len(signOpts.MustHasFields) > 0 {
-			if err := verifier.MustHasOtherKeys(signOpts.MustHasFields...); nil != err {
-				unsigned(c, fmt.Errorf("%s:%w", err.Error(), ErrKeyMiss), signOpts.Callback)
-				return
-			}
-		}
-
-		//check timeout
-		verifier.SetTimeout(signOpts.Timeout)
-		if err := verifier.CheckTimeStamp(); nil != err {
-			unsigned(c, fmt.Errorf("%s:%w", err.Error(), ErrTimeout), signOpts.Callback)
-			return
-		}
-
-		//check sign
-		signer := sign.NewGoSignerMd5()
-		signer.SetBody(verifier.GetBodyWithoutSign())
-		signer.SetAppSecretWrapBody(secret)
-		sign := signer.GetSignature()
-		if verifier.MustString("sign") != sign {
-			fmt.Printf("sign string:%s sign:%s", signer.GetSignBodyString(), sign)
-			unsigned(c, ErrSignNotMatch, signOpts.Callback)
-			return
-		}
-
-		c.Next()
+func NewApiSign() *ApiSign {
+	return &ApiSign{
+		prefixPath:    make([]string, 0),
+		path:          make(map[string]struct{}, 0),
+		whitelistPath: make(map[string]struct{}, 0),
+		timeout:       2 * time.Minute,
 	}
 }
 
-// setting unsigned callback.
-func WithUnsignedCallback(callback UnsignedCallback) SignOption {
-	return func(opts *SignOptions) {
-		opts.Callback = callback
+//md5 signer only
+func (a *ApiSign) SignVerifier(secret string) middleware.Middleware {
+	return func(handler middleware.Handler) middleware.Handler {
+		return func(c *gin.Context, req interface{}) (reply interface{}, err error) {
+			verifier := sign.NewGoVerifier()
+			if err := verifier.ParseQuery(c.Request.URL.RequestURI()); err != nil {
+				fmt.Printf("SignVerifier parseQuery err:%v", err)
+				return nil, ErrParseQuery
+			}
+
+			//check timeout
+			verifier.SetTimeout(a.timeout)
+			if err := verifier.CheckTimeStamp(); nil != err {
+				fmt.Printf("SignVerifier timeout err:%v", err)
+				return nil, ErrTimeout
+			}
+
+			//check sign
+			signer := sign.NewGoSignerMd5()
+			signer.SetBody(verifier.GetBodyWithoutSign())
+			signer.SetAppSecretWrapBody(secret)
+			sign := signer.GetSignature()
+			if verifier.MustString("sign") != sign {
+				fmt.Printf("SignVerifier sign not match source:%s sign:%s", signer.GetSignBodyString(), sign)
+				return nil, ErrSignNotMatch
+			}
+
+			return handler(c, req)
+		}
 	}
 }
 
 // setting timeout
-func WithTimeout(t time.Duration) SignOption {
-	return func(opts *SignOptions) {
-		opts.Timeout = t
-	}
+func (a *ApiSign) Timeout(t time.Duration) *ApiSign {
+	a.timeout = t
+	return a
 }
 
-// setting mustHasFields
-func WithMustHasFields(fields ...string) SignOption {
-	return func(opts *SignOptions) {
-		opts.MustHasFields = fields
-	}
+// setting prefix paths
+func (a *ApiSign) Prefix(paths ...string) *ApiSign {
+	a.prefixPath = append(a.prefixPath, paths...)
+	return a
 }
 
-//unauthorized process
-func unsigned(c *gin.Context, err error, callback UnsignedCallback) {
-	c.Abort()
-	if callback != nil {
-		callback(c, err)
-		return
+// setting whitelist paths
+func (a *ApiSign) Whitelist(paths ...string) *ApiSign {
+	for _, path := range paths {
+		a.whitelistPath[path] = struct{}{}
 	}
+	return a
+}
 
-	c.Writer.WriteHeader(http.StatusBadRequest)
+// setting match paths
+func (a *ApiSign) Path(paths ...string) *ApiSign {
+	for _, path := range paths {
+		a.path[path] = struct{}{}
+	}
+	return a
 }
