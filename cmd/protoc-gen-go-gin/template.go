@@ -61,7 +61,7 @@ type {{.ServiceType}}GinServer interface {
 
 func Register{{.ServiceType}}GinServer(s *gin_tpl.Server, srv {{.ServiceType}}GinServer) {
 	{{- range .Methods}}
-	route.{{.Method}}("{{.Path}}", _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s,srv))
+	s.Engine.{{.Method}}("{{.Path}}", _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s,srv))
 	{{- end}}
 }
 
