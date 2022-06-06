@@ -59,8 +59,7 @@ type {{.ServiceType}}GinServer interface {
 {{- end}}
 }
 
-func Register{{.ServiceType}}GinServer(s *gin_tpl.Server, srv {{.ServiceType}}GinServer,ms ...gin.HandlerFunc) {
-	route :=s.Engine.Use(ms...)
+func Register{{.ServiceType}}GinServer(s *gin_tpl.Server, srv {{.ServiceType}}GinServer) {
 	{{- range .Methods}}
 	route.{{.Method}}("{{.Path}}", _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s,srv))
 	{{- end}}

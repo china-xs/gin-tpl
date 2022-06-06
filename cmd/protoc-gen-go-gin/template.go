@@ -59,8 +59,7 @@ type {{.ServiceType}}GinServer interface {
 {{- end}}
 }
 
-func Register{{.ServiceType}}GinServer(s *gin_tpl.Server, srv {{.ServiceType}}GinServer,ms ...gin.HandlerFunc) {
-	route :=s.Engine.Use(ms...)
+func Register{{.ServiceType}}GinServer(s *gin_tpl.Server, srv {{.ServiceType}}GinServer) {
 	{{- range .Methods}}
 	route.{{.Method}}("{{.Path}}", _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s,srv))
 	{{- end}}
@@ -82,7 +81,6 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s *gin_tpl.Server,srv {{$svrTyp
 					return 
 				}
 			}
-
 			case "GET","DELETE":
 			if err := c.ShouldBindQuery(&in); err != nil {
 				s.Enc(c,nil,err)
@@ -97,8 +95,7 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s *gin_tpl.Server,srv {{$svrTyp
 		{{- end}}
 		c.Set(gin_tpl.OperationKey, "/{{$svrName}}/{{.Name}}")
 		h := s.Middleware(func(c *gin.Context, req interface{}) (interface{}, error) {
-			ctx := c.Request.Context()
-			return srv.{{.Name}}(ctx, req.(*{{.Request}}))
+			return srv.{{.Name}}(c, req.(*{{.Request}}))
 		})
 		out, err := h(c, &in)
 		s.Enc(c,out,err)
