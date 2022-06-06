@@ -7,9 +7,11 @@ package api_sign
 import (
 	"errors"
 	"fmt"
+	gin_tpl "github.com/china-xs/gin-tpl"
 	"github.com/china-xs/gin-tpl/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/parkingwang/go-sign"
+	"strings"
 	"time"
 )
 
@@ -42,6 +44,30 @@ func NewApiSign() *ApiSign {
 func (a *ApiSign) SignVerifier(secret string) middleware.Middleware {
 	return func(handler middleware.Handler) middleware.Handler {
 		return func(c *gin.Context, req interface{}) (reply interface{}, err error) {
+			path := c.GetString(gin_tpl.OperationKey)
+
+			//whitelist
+			if _, exists := a.whitelistPath[path]; exists {
+				return handler(c, req)
+			}
+
+			//matched path && prefix path
+			hasPath := false
+			if _, exists := a.path[path]; exists {
+				hasPath = true
+			} else {
+				for _, p := range a.prefixPath {
+					if strings.HasPrefix(path, p) {
+						hasPath = true
+						break
+					}
+				}
+			}
+
+			if !hasPath {
+				return handler(c, req)
+			}
+
 			verifier := sign.NewGoVerifier()
 			if err := verifier.ParseQuery(c.Request.URL.RequestURI()); err != nil {
 				fmt.Printf("SignVerifier parseQuery err:%v", err)
