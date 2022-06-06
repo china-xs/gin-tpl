@@ -20,6 +20,8 @@ import (
 
 //验证失败回调函数
 func TestAuthorizeFailed(t *testing.T) {
+	jwtAuth := NewJwtAuth()
+
 	handler := Authorize("test-secret", WithUnauthorizedCallback(
 		func(c *gin.Context, err error) {
 			assert.NotNil(t, err)
