@@ -55,7 +55,7 @@ var httpTemplate = `
 {{$svrName := .ServiceName}}
 type {{.ServiceType}}GinServer interface {
 {{- range .MethodSets}}
-	{{.Name}}(context.Context, *{{.Request}}) (*{{.Reply}}, error)
+	{{.Name}}(*gin.Context, *{{.Request}}) (*{{.Reply}}, error)
 {{- end}}
 }
 
