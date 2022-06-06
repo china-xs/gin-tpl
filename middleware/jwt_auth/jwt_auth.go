@@ -6,6 +6,7 @@ package jwt_auth
 
 import (
 	"errors"
+	gin_tpl "github.com/china-xs/gin-tpl"
 	"github.com/china-xs/gin-tpl/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
@@ -29,18 +30,15 @@ var (
 )
 
 type (
-	AuthorizeOptions struct {
+	JwtAuth struct {
 		prefixPath    []string
 		path          map[string]struct{}
 		whitelistPath map[string]struct{}
 	}
-
-	// AuthorizeOption defines the method to customize an AuthorizeOptions.
-	AuthorizeOption func(opts *AuthorizeOptions)
 )
 
-func NewJwtAuth() *AuthorizeOptions {
-	return &AuthorizeOptions{
+func NewJwtAuth() *JwtAuth {
+	return &JwtAuth{
 		prefixPath:    make([]string, 0),
 		path:          make(map[string]struct{}, 0),
 		whitelistPath: make(map[string]struct{}, 0),
@@ -48,7 +46,7 @@ func NewJwtAuth() *AuthorizeOptions {
 }
 
 // Authorize is a jwt-token parser middleware.
-func (a *AuthorizeOptions) Authorize(secret string) middleware.Middleware {
+func (a *JwtAuth) Authorize(secret string) middleware.Middleware {
 	return func(handler middleware.Handler) middleware.Handler {
 		return func(c *gin.Context, req interface{}) (reply interface{}, err error) {
 			path := c.GetString(gin_tpl.OperationKey)
@@ -60,7 +58,9 @@ func (a *AuthorizeOptions) Authorize(secret string) middleware.Middleware {
 
 			//matched path && prefix path
 			hasPath := false
-			if _, exists := a.path[path]; !exists {
+			if _, exists := a.path[path]; exists {
+				hasPath = true
+			} else {
 				for _, p := range a.prefixPath {
 					if strings.HasPrefix(path, p) {
 						hasPath = true
@@ -115,13 +115,13 @@ func newParser() *jwt.Parser {
 }
 
 // setting prefix paths
-func (a *AuthorizeOptions) Prefix(paths ...string) *AuthorizeOptions {
+func (a *JwtAuth) Prefix(paths ...string) *JwtAuth {
 	a.prefixPath = append(a.prefixPath, paths...)
 	return a
 }
 
 // setting whitelist paths
-func (a *AuthorizeOptions) Whitelist(paths ...string) *AuthorizeOptions {
+func (a *JwtAuth) Whitelist(paths ...string) *JwtAuth {
 	for _, path := range paths {
 		a.whitelistPath[path] = struct{}{}
 	}
@@ -129,7 +129,7 @@ func (a *AuthorizeOptions) Whitelist(paths ...string) *AuthorizeOptions {
 }
 
 // setting match paths
-func (a *AuthorizeOptions) Path(paths ...string) *AuthorizeOptions {
+func (a *JwtAuth) Path(paths ...string) *JwtAuth {
 	for _, path := range paths {
 		a.path[path] = struct{}{}
 	}

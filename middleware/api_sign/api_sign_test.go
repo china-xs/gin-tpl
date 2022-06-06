@@ -10,6 +10,7 @@ package api_sign
 
 import (
 	"fmt"
+	tpl "github.com/china-xs/gin-tpl"
 	"github.com/gin-gonic/gin"
 	"github.com/parkingwang/go-sign"
 	"github.com/stretchr/testify/assert"
@@ -31,122 +32,113 @@ func TestCreateSign(t *testing.T) {
 	t.Log(s)
 }
 
-//验证失败回调函数
-func TestSignVerifierFailed(t *testing.T) {
-	handler := SignVerifier("sign-secret", WithUnsignedCallback(
-		func(c *gin.Context, err error) {
-			assert.NotNil(t, err)
-			t.Log("callback err:", err)
-			c.String(http.StatusBadRequest, "unsigned callback")
-		}))
-
-	router := gin.New()
-	router.Use(handler)
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/info", nil)
-	router.ServeHTTP(w, req)
-	t.Log(w.Code, w.Body)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-//验证token成功
+//验证签名成功
 func TestSignVerifierSuccess(t *testing.T) {
-	const key = "sign-secret"
-	handler := SignVerifier(key,
-		WithTimeout(10*time.Minute),
-		WithMustHasFields("user_id"),
-		WithUnsignedCallback(
-			func(c *gin.Context, err error) {
-				assert.NotNil(t, err)
-				t.Log("callback err:", err)
-				c.String(http.StatusBadRequest, "unsigned callback")
-			}))
+	const secret = "test-secret"
+	const path = "/info"
+	apiSign := NewApiSign()
+	var ops []tpl.ServerOption
+	ms := tpl.Middleware(
+		apiSign.Path(path).SignVerifier(secret),
+	)
+	ops = append(ops,
+		ms,                 // 中间件
+		tpl.OpenApi(false), //在线文档
+	)
+	app := tpl.NewServer(ops...)
 
-	router := gin.New()
-	router.Use(handler)
-	router.GET("/info", func(c *gin.Context) {
-		c.String(http.StatusOK, "ok")
+	app.Engine.GET(path, func(c *gin.Context) {
+		c.Set(tpl.OperationKey, path)
+		h := app.Middleware(func(c *gin.Context, req interface{}) (interface{}, error) {
+			return "ok", nil
+		})
+		out, err := h(c, nil)
+		app.Enc(c, out, err)
+		return
 	})
 
-	query := CreateSign(key, map[string]string{
+	w := httptest.NewRecorder()
+	query := CreateSign(secret, map[string]string{
 		"user_id": "256",
 	})
 	t.Log("query", query)
-
-	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/info?%s", query), nil)
-
-	router.ServeHTTP(w, req)
+	app.Engine.ServeHTTP(w, req)
 	t.Log(w.Code, w.Body)
-
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "ok", w.Body.String())
-}
-
-//验证确实必要字段
-func TestSignVerifierMissKeys(t *testing.T) {
-	const key = "sign-secret"
-	handler := SignVerifier(key,
-		WithTimeout(10*time.Minute),
-		WithMustHasFields("user_id", "mobile"), //丢失键
-		WithUnsignedCallback(
-			func(c *gin.Context, err error) {
-				assert.NotNil(t, err)
-				assert.ErrorIs(t, err, ErrKeyMiss)
-				c.String(http.StatusBadRequest, "miss key")
-			}))
-
-	router := gin.New()
-	router.Use(handler)
-	router.GET("/info", func(c *gin.Context) {
-		c.String(http.StatusOK, "ok")
-	})
-
-	query := CreateSign(key, map[string]string{
-		"user_id": "256",
-	})
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/info?%s", query), nil)
-	router.ServeHTTP(w, req)
-	t.Log(w.Code, w.Body)
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, "miss key", w.Body.String())
 }
 
 //验证超时
 func TestSignVerifierTimeout(t *testing.T) {
-	const key = "sign-secret"
-	handler := SignVerifier(key,
-		WithTimeout(1*time.Second),
-		WithMustHasFields("user_id"), //丢失键
-		WithUnsignedCallback(
-			func(c *gin.Context, err error) {
-				assert.NotNil(t, err)
-				assert.ErrorIs(t, err, ErrTimeout)
-				c.String(http.StatusBadRequest, "timeout")
-			}))
+	const secret = "test-secret"
+	const path = "/info"
+	apiSign := NewApiSign()
+	var ops []tpl.ServerOption
+	ms := tpl.Middleware(
+		apiSign.Path(path).Timeout(2 * time.Second).SignVerifier(secret),
+	)
+	ops = append(ops,
+		ms,                 // 中间件
+		tpl.OpenApi(false), //在线文档
+	)
+	app := tpl.NewServer(ops...)
 
-	router := gin.New()
-	router.Use(handler)
-	router.GET("/info", func(c *gin.Context) {
-		c.String(http.StatusOK, "ok")
+	app.Engine.GET(path, func(c *gin.Context) {
+		c.Set(tpl.OperationKey, path)
+		h := app.Middleware(func(c *gin.Context, req interface{}) (interface{}, error) {
+			return "ok", nil
+		})
+		out, err := h(c, nil)
+		assert.EqualError(t, ErrTimeout, "timeout")
+		app.Enc(c, out, err)
+		return
 	})
 
-	query := CreateSign(key, map[string]string{
+	w := httptest.NewRecorder()
+	query := CreateSign(secret, map[string]string{
 		"user_id": "256",
 	})
+	t.Log("query", query)
 
-	//模拟超时
+	//模拟三秒后访问
 	time.Sleep(3 * time.Second)
-	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/info?%s", query), nil)
-	router.ServeHTTP(w, req)
-	t.Log(w.Code, w.Body)
+	app.Engine.ServeHTTP(w, req)
+}
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, "timeout", w.Body.String())
+//验证签名不匹配
+func TestSignVerifierNotMatch(t *testing.T) {
+	const secret = "test-secret"
+	const path = "/info"
+	apiSign := NewApiSign()
+	var ops []tpl.ServerOption
+	ms := tpl.Middleware(
+		apiSign.Path(path).Timeout(2 * time.Second).SignVerifier(secret),
+	)
+	ops = append(ops,
+		ms,                 // 中间件
+		tpl.OpenApi(false), //在线文档
+	)
+	app := tpl.NewServer(ops...)
+
+	app.Engine.GET(path, func(c *gin.Context) {
+		c.Set(tpl.OperationKey, path)
+		h := app.Middleware(func(c *gin.Context, req interface{}) (interface{}, error) {
+			return "ok", nil
+		})
+		out, err := h(c, nil)
+		assert.EqualError(t, ErrSignNotMatch, "sign not match")
+		app.Enc(c, out, err)
+		return
+	})
+
+	w := httptest.NewRecorder()
+	query := CreateSign(secret, map[string]string{
+		"user_id": "256",
+	})
+	t.Log("query", query)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/info?a=1&%s", query), nil)
+	app.Engine.ServeHTTP(w, req)
 }
 
 func CreateSign(secretKey string, payloads map[string]string) string {
