@@ -11,7 +11,7 @@ package service
 
 import (
 	{{- if .UseContext }}
-	"context"
+	"github.com/gin-gonic/gin"
 	{{- end }}
 	{{- if .UseIO }}
 	"io"
