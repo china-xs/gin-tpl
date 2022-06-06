@@ -70,29 +70,35 @@ func Register{{.ServiceType}}GinServer(s *gin_tpl.Server, srv {{.ServiceType}}Gi
 func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s *gin_tpl.Server,srv {{$svrType}}GinServer) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		var in {{.Request}}
+		switch c.Request.Method {
+			case "POST","PUT":
+			if err := c.ShouldBindBodyWith(&in{{.Body}},binding.JSON); err != nil {
+				s.Enc(c,nil,err)
+				return 
+			}
+			if strings.Contains(c.Request.URL.String(),"?"){
+				if err := c.ShouldBindQuery(&in); err != nil {
+					s.Enc(c,nil,err)
+					return 
+				}
+			}
 
-		{{- if .HasBody}}
-		if err := c.ShouldBind(&in{{.Body}}); err != nil {
-			s.Enc(c,nil,err)
-			return 
+			case "GET","DELETE":
+			if err := c.ShouldBindQuery(&in); err != nil {
+				s.Enc(c,nil,err)
+				return 
+			}
 		}
-		{{- end}}
-		
-		{{- if eq .Method "GET" "DELETE" }}
-		if err := c.ShouldBindQuery(&in); err != nil {
-			s.Enc(c,nil,err)
-			return 
-		}
-		{{- end}}
-		
 		{{- if .HasVars}}
 		if err := c.ShouldBindUri(&in); err != nil {
 			s.Enc(c,nil,err)
 			return 
 		}
 		{{- end}}
+		c.Set(gin_tpl.OperationKey, "/{{$svrName}}/{{.Name}}")
 		h := s.Middleware(func(c *gin.Context, req interface{}) (interface{}, error) {
-			return srv.{{.Name}}(c, req.(*{{.Request}}))
+			ctx := c.Request.Context()
+			return srv.{{.Name}}(ctx, req.(*{{.Request}}))
 		})
 		out, err := h(c, &in)
 		s.Enc(c,out,err)

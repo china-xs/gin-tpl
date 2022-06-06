@@ -1,0 +1,18 @@
+log:
+  filename: /tmp/app.log
+  maxSize: 500
+  maxBackups: 3
+  maxAge: 3
+  level: "debug"
+  stdout: true
+db:
+  host: 127.0.0.1
+  port: 3306
+  database: gin
+  user: root
+  pwd: 123456
+
+redis:
+  addr: 127.0.0.1:6379
+  password: 123456
+  db: 0

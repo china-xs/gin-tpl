@@ -7,7 +7,7 @@ import "protoc-gen-openapiv2/options/annotations.proto";// swagger proto 包 pat
 import "validate/validate.proto";// validate proto 数据校验规则包
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/china-xs/gin-tpl/examples/blog/api/auth;auth";
+option go_package = "github.com/china-xs/gin-tpl/examples/blog/api/auth;v1";
 option java_multiple_files = true;
 option java_package = "api.auth";
 
@@ -62,6 +62,7 @@ message GetTokenRequest{
 	// @gotags: form:"password" uri:"username"
 	string password = 2[
 		(validate.rules).string = {
+//			ignore_empty:true,
 			min_bytes:2,// 长度要求带有校验、当前暂不支持直接修改错误信息
 			max_bytes:128,
 		}
