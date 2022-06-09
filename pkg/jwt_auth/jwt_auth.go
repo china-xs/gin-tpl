@@ -16,8 +16,8 @@ import (
 
 var ProviderSet = wire.NewSet(NewJwtAuth, NewOps)
 var (
-	ErrInvalidToken = errors.New("invalid auth token")
-	ErrNoClaims     = errors.New("no auth params")
+	ErrInvalidToken = errors.New("【jwt_auth】invalid auth token")
+	ErrNoClaims     = errors.New("【jwt_auth】no auth params")
 )
 
 type (
@@ -130,7 +130,7 @@ func (a *JwtAuth) Verifier(r *http.Request) (jwt.MapClaims, error) {
 		request.WithParser(newParser()))
 
 	if err != nil {
-		return nil, err
+		return nil, ErrInvalidToken
 	}
 
 	if !token.Valid {
