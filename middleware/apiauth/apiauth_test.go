@@ -6,10 +6,11 @@
  * @Date: 2022/5/31 13:39
  */
 
-package jwt_auth
+package apiauth
 
 import (
 	tpl "github.com/china-xs/gin-tpl"
+	"github.com/china-xs/gin-tpl/pkg/jwt_auth"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/assert"
@@ -24,13 +25,15 @@ func TestPath(t *testing.T) {
 	const path = "/match/info"
 	const path1 = "/member/info1"
 	const path2 = "/whitelist/info2"
-	jwtAuth := NewJwtAuth()
+	options := &jwt_auth.Options{
+		Secret:    "test-secret",
+		Path:      []string{path},
+		Prefix:    []string{"/member"},
+		Whitelist: []string{},
+	}
 	var ops []tpl.ServerOption
 	ms := tpl.Middleware(
-		jwtAuth.Path(path).
-			Prefix("/member").
-			Whitelist(path2).
-			Authorize("test-secret"),
+		Authorize(options),
 	)
 	ops = append(ops,
 		ms,                 // 中间件
@@ -90,10 +93,15 @@ func TestPath(t *testing.T) {
 //验证失败
 func TestAuthorizeFailed(t *testing.T) {
 	const path = "/info"
-	jwtAuth := NewJwtAuth()
+	options := &jwt_auth.Options{
+		Secret:    "test-secret",
+		Path:      []string{path},
+		Prefix:    []string{"/member"},
+		Whitelist: []string{},
+	}
 	var ops []tpl.ServerOption
 	ms := tpl.Middleware(
-		jwtAuth.Path(path).Authorize("test-secret"),
+		Authorize(options),
 	)
 	ops = append(ops,
 		ms,                 // 中间件
@@ -122,10 +130,15 @@ func TestAuthorizeFailed(t *testing.T) {
 func TestAuthorizeSuccess(t *testing.T) {
 	const key = "test-secret"
 	const path = "/info"
-	jwtAuth := NewJwtAuth()
+	options := &jwt_auth.Options{
+		Secret:    "test-secret",
+		Path:      []string{path},
+		Prefix:    []string{"/member"},
+		Whitelist: []string{},
+	}
 	var ops []tpl.ServerOption
 	ms := tpl.Middleware(
-		jwtAuth.Path(path).Authorize("test-secret"),
+		Authorize(options),
 	)
 	ops = append(ops,
 		ms,                 // 中间件

@@ -6,11 +6,12 @@
  * @Date: 2022/5/31 13:39
  */
 
-package api_sign
+package apiverifier
 
 import (
 	"fmt"
 	tpl "github.com/china-xs/gin-tpl"
+	"github.com/china-xs/gin-tpl/pkg/api_sign"
 	"github.com/gin-gonic/gin"
 	"github.com/parkingwang/go-sign"
 	"github.com/stretchr/testify/assert"
@@ -27,7 +28,7 @@ const (
 //新建sign
 func TestCreateSign(t *testing.T) {
 	s := CreateSign("secret", map[string]string{
-		"mobile": "15014164031",
+		"mobile": "15014164032",
 	})
 	t.Log(s)
 }
@@ -36,10 +37,16 @@ func TestCreateSign(t *testing.T) {
 func TestSignVerifierSuccess(t *testing.T) {
 	const secret = "test-secret"
 	const path = "/info"
-	apiSign := NewApiSign()
+	options := &api_sign.Options{
+		Secret:    secret,
+		Path:      []string{path},
+		Prefix:    []string{"/member"},
+		Whitelist: []string{},
+		Timeout:   2,
+	}
 	var ops []tpl.ServerOption
 	ms := tpl.Middleware(
-		apiSign.Path(path).SignVerifier(secret),
+		ApiVerifier(options),
 	)
 	ops = append(ops,
 		ms,                 // 中间件
@@ -72,10 +79,16 @@ func TestSignVerifierSuccess(t *testing.T) {
 func TestSignVerifierTimeout(t *testing.T) {
 	const secret = "test-secret"
 	const path = "/info"
-	apiSign := NewApiSign()
+	options := &api_sign.Options{
+		Secret:    secret,
+		Path:      []string{path},
+		Prefix:    []string{"/member"},
+		Whitelist: []string{},
+		Timeout:   2,
+	}
 	var ops []tpl.ServerOption
 	ms := tpl.Middleware(
-		apiSign.Path(path).Timeout(2 * time.Second).SignVerifier(secret),
+		ApiVerifier(options),
 	)
 	ops = append(ops,
 		ms,                 // 中间件
@@ -89,7 +102,7 @@ func TestSignVerifierTimeout(t *testing.T) {
 			return "ok", nil
 		})
 		out, err := h(c, nil)
-		assert.EqualError(t, ErrTimeout, "timeout")
+		assert.EqualError(t, api_sign.ErrTimeout, "timeout")
 		app.Enc(c, out, err)
 		return
 	})
@@ -110,10 +123,16 @@ func TestSignVerifierTimeout(t *testing.T) {
 func TestSignVerifierNotMatch(t *testing.T) {
 	const secret = "test-secret"
 	const path = "/info"
-	apiSign := NewApiSign()
+	options := &api_sign.Options{
+		Secret:    secret,
+		Path:      []string{path},
+		Prefix:    []string{"/member"},
+		Whitelist: []string{},
+		Timeout:   2,
+	}
 	var ops []tpl.ServerOption
 	ms := tpl.Middleware(
-		apiSign.Path(path).Timeout(2 * time.Second).SignVerifier(secret),
+		ApiVerifier(options),
 	)
 	ops = append(ops,
 		ms,                 // 中间件
@@ -127,7 +146,7 @@ func TestSignVerifierNotMatch(t *testing.T) {
 			return "ok", nil
 		})
 		out, err := h(c, nil)
-		assert.EqualError(t, ErrSignNotMatch, "sign not match")
+		assert.EqualError(t, api_sign.ErrSignNotMatch, "sign not match")
 		app.Enc(c, out, err)
 		return
 	})
