@@ -6,6 +6,7 @@ package log
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/google/wire"
 	"github.com/spf13/viper"
@@ -15,6 +16,7 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -128,12 +130,33 @@ func (l Log) With(ctx context.Context) *zap.Logger {
 	if span := otelTrace.SpanContextFromContext(ctx); span.HasSpanID() {
 		spanId = span.SpanID().String()
 	}
+	// 跳过 gorm 内置的调用
+	var (
+		gormPackage    = filepath.Join("gorm.io", "gorm")
+		zapgormPackage = filepath.Join("moul.io", "zapgorm2")
+	)
 	var fields []zap.Field
 	fields = append(fields,
 		zap.String(msgTrace, traceId),
 		zap.String(msgSpan, spanId),
 		zap.String("caller", GetCaller()),
 	)
+	// 减去一次封装，以及一次在 logger 初始化里添加 zap.AddCallerSkip(1)
+	clone := l.l.WithOptions(zap.AddCallerSkip(-2))
+	for i := 2; i < 15; i++ {
+		_, file, _, ok := runtime.Caller(i)
+		fmt.Println("file:", file)
+		switch {
+		case !ok:
+		case strings.HasSuffix(file, "_test.go"):
+		case strings.Contains(file, gormPackage):
+		case strings.Contains(file, zapgormPackage):
+		default:
+			// 返回一个附带跳过行号的新的 zap logger
+			return clone.WithOptions(zap.AddCallerSkip(i), zap.Fields(fields...))
+		}
+	}
+
 	return l.l.With(fields...)
 }
 
