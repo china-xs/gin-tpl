@@ -55,9 +55,9 @@ func Validator2I18n(I18n *i18n.I18n) middleware.Middleware {
 					fmt.Printf("i18nKey:%v,params:%v\n", i18nKey, params)
 					msg := I18n.Tr(en, i18nKey, params)
 					if msg != "" {
-						return nil, errors.BadRequest("VALIDATOR", msg)
+						return nil, errors.New(412, "VALIDATOR", msg)
 					}
-					return nil, errors.BadRequest("VALIDATOR", err.Error())
+					return nil, errors.New(412, "VALIDATOR", err.Error())
 				}
 			}
 			return handler(c, req)

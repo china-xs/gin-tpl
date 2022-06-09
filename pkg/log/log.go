@@ -23,6 +23,7 @@ import (
 
 const msgTrace = "trace_id"
 const msgSpan = "span_id"
+
 const format = "2006-01-02 15:04:05"
 const formatFolder = "2006-01-02"
 
@@ -107,6 +108,33 @@ func New(o *Options) (*zap.Logger, func(), error) {
 		write.Close() // os close
 	}
 	return logger, fc, err
+}
+
+type Log struct {
+	l *zap.Logger
+}
+
+func NewL(l *zap.Logger) *Log {
+	return &Log{
+		l: l,
+	}
+}
+
+func (l Log) With(ctx context.Context) *zap.Logger {
+	var traceId, spanId string
+	if span := otelTrace.SpanContextFromContext(ctx); span.HasTraceID() {
+		traceId = span.TraceID().String()
+	}
+	if span := otelTrace.SpanContextFromContext(ctx); span.HasSpanID() {
+		spanId = span.SpanID().String()
+	}
+	var fields []zap.Field
+	fields = append(fields,
+		zap.String(msgTrace, traceId),
+		zap.String(msgSpan, spanId),
+		zap.String("caller", GetCaller()),
+	)
+	return l.l.With(fields...)
 }
 
 func WithCtx(ctx context.Context, log *zap.Logger) *zap.Logger {

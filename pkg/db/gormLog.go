@@ -34,7 +34,7 @@ var (
 )
 
 type GLog struct {
-	zapLog        *zap.Logger
+	l             *log.Log
 	LogLevel      logger.LogLevel
 	SlowThreshold time.Duration // 慢查询阀值
 }
@@ -57,7 +57,7 @@ func NewGLOpts(v *viper.Viper) (*GLOptions, error) {
 }
 func NewGL(o *GLOptions, l *zap.Logger) *GLog {
 	return &GLog{
-		zapLog:        l,
+		l:             log.NewL(l),
 		LogLevel:      o.Level,
 		SlowThreshold: o.SlowThreshold,
 	}
@@ -66,7 +66,7 @@ func NewGL(o *GLOptions, l *zap.Logger) *GLog {
 // NewDBLog 依赖
 func NewDBLog(l *zap.Logger) *GLog {
 	return &GLog{
-		zapLog:        l,
+		l:             log.NewL(l),
 		LogLevel:      logger.Info,     //打印所有日志，登记越小打印越少
 		SlowThreshold: 2 * time.Second, // 2秒
 	}
@@ -82,7 +82,7 @@ func (l *GLog) LogMode(level logger.LogLevel) logger.Interface {
 // Info print info
 func (l GLog) Info(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Info {
-		log.WithCtx(ctx, l.zapLog).Info(msgKey, zap.String(
+		l.l.With(ctx).Info(msgKey, zap.String(
 			msgInfo,
 			fmt.Sprintf(infoStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)),
 		)
@@ -92,7 +92,7 @@ func (l GLog) Info(ctx context.Context, msg string, data ...interface{}) {
 // Warn print warn messages
 func (l GLog) Warn(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Warn {
-		log.WithCtx(ctx, l.zapLog).Warn(msgKey,
+		l.l.With(ctx).Warn(msgKey,
 			zap.String(msgInfo, fmt.Sprintf(warnStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)),
 		)
 	}
@@ -101,7 +101,7 @@ func (l GLog) Warn(ctx context.Context, msg string, data ...interface{}) {
 // Error print error messages
 func (l GLog) Error(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= logger.Error {
-		log.WithCtx(ctx, l.zapLog).Error(msgKey,
+		l.l.With(ctx).Error(msgKey,
 			zap.String(msgInfo, fmt.Sprintf(errStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)),
 		)
 	}
@@ -122,7 +122,7 @@ func (l GLog) Trace(ctx context.Context, begin time.Time, fc func() (string, int
 		} else {
 			field = zap.String(msgInfo, fmt.Sprintf(traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, rows, sql))
 		}
-		log.WithCtx(ctx, l.zapLog).Error(msgKey, field)
+		l.l.With(ctx).Error(msgKey, field)
 	case elapsed > l.SlowThreshold && l.SlowThreshold != 0 && l.LogLevel >= logger.Warn:
 		sql, rows := fc()
 		slowLog := fmt.Sprintf("SLOW SQL >= %v", l.SlowThreshold)
@@ -131,7 +131,7 @@ func (l GLog) Trace(ctx context.Context, begin time.Time, fc func() (string, int
 		} else {
 			field = zap.String(msgInfo, fmt.Sprintf(traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, rows, sql))
 		}
-		log.WithCtx(ctx, l.zapLog).Warn(msgKey, field)
+		l.l.With(ctx).Warn(msgKey, field)
 	case l.LogLevel == logger.Info:
 		sql, rows := fc()
 		if rows == -1 {
@@ -139,6 +139,6 @@ func (l GLog) Trace(ctx context.Context, begin time.Time, fc func() (string, int
 		} else {
 			field = zap.String(msgInfo, fmt.Sprintf(traceStr, float64(elapsed.Nanoseconds())/1e6, rows, sql))
 		}
-		log.WithCtx(ctx, l.zapLog).Info(msgKey, field)
+		l.l.With(ctx).Info(msgKey, field)
 	}
 }
