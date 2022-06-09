@@ -6,6 +6,7 @@ package log
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/google/wire"
 	"github.com/spf13/viper"
@@ -121,44 +122,60 @@ func NewL(l *zap.Logger) *Log {
 	}
 }
 
-func (l Log) With(ctx context.Context) *zap.Logger {
-	var traceId, spanId string
+func (l Log) WithGORM(ctx context.Context) *zap.Logger {
+	var (
+		gormPackage = filepath.Join("gorm.io", "gorm")
+		genPackage  = filepath.Join("gorm.io", "gen")
+	)
+	var fields = make([]zap.Field, 3)
+	traceId, spanId := GetTrace(ctx)
+	fields[0] = zap.String(msgTrace, traceId)
+	fields[1] = zap.String(msgSpan, spanId)
+	for i := 2; i < 15; i++ {
+		_, file, link, ok := runtime.Caller(i)
+		switch {
+		case !ok:
+		case strings.HasSuffix(file, "_test.go"):
+		case strings.HasSuffix(file, ".gen.go"): // gorm/gen 自动生成文件&生成文件
+		case strings.Contains(file, gormPackage):
+		case strings.Contains(file, genPackage):
+		default:
+			fields[2] = zap.String("caller", fmt.Sprintf("%v:%v",
+				file[strings.LastIndex(file, "/")+1:], link))
+			return l.l.WithOptions(zap.WithCaller(false), zap.Fields(fields...))
+		}
+	}
+	return l.l.With(fields...)
+}
+
+func GetTrace(ctx context.Context) (traceId, spanId string) {
 	if span := otelTrace.SpanContextFromContext(ctx); span.HasTraceID() {
 		traceId = span.TraceID().String()
 	}
 	if span := otelTrace.SpanContextFromContext(ctx); span.HasSpanID() {
 		spanId = span.SpanID().String()
 	}
-	// 跳过 gorm 内置的调用
-	var (
-		gormPackage = filepath.Join("gorm.io", "gorm")
-		genPackage  = filepath.Join("gorm.io", "gen")
-	)
-	var fields []zap.Field
-	fields = append(fields,
-		zap.String(msgTrace, traceId),
-		zap.String(msgSpan, spanId),
-		zap.String("caller", GetCaller()),
-	)
-	// 减去一次封装，以及一次在 logger 初始化里添加 zap.AddCallerSkip(1)
-	clone := l.l.WithOptions(zap.AddCallerSkip(-2))
-	for i := 2; i < 15; i++ {
-		_, file, _, ok := runtime.Caller(i)
-		//fmt.Println("file:", file)
+	return
+}
+
+func (l Log) With(ctx context.Context) *zap.Logger {
+	traceId, spanId := GetTrace(ctx)
+	var fields = make([]zap.Field, 3)
+	fields[0] = zap.String(msgTrace, traceId)
+	fields[1] = zap.String(msgSpan, spanId)
+	for i := 1; i < 15; i++ {
+		_, file, link, ok := runtime.Caller(i)
 		switch {
 		case !ok:
 		case strings.HasSuffix(file, "pb.go"): //过滤自动生成文件
 		case strings.HasSuffix(file, "_test.go"):
-		case strings.HasSuffix(file, ".gen.go"): // gorm/gen 自动生成文件&生成文件
-		case strings.Contains(file, gormPackage):
-		case strings.Contains(file, genPackage):
 		case strings.Contains(file, "pkg/log/log.go"):
 		default:
-			// 返回一个附带跳过行号的新的 zap logger
-			return clone.WithOptions(zap.AddCallerSkip(i), zap.Fields(fields...))
+			fields[2] = zap.String("caller", fmt.Sprintf("%v:%v",
+				file[strings.LastIndex(file, "/")+1:], link))
+			return l.l.WithOptions(zap.WithCaller(false), zap.Fields(fields...))
 		}
 	}
-	//fmt.Println("?")
 	return l.l.With(fields...)
 }
 
