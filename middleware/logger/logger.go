@@ -13,6 +13,7 @@ import (
 
 // Logger Validator is a validator middleware.
 func Logger(log *zap.Logger) middleware.Middleware {
+	l := plog.NewL(log)
 	return func(handler middleware.Handler) middleware.Handler {
 		return func(c *gin.Context, req interface{}) (reply interface{}, err error) {
 			var code int32
@@ -28,22 +29,20 @@ func Logger(log *zap.Logger) middleware.Middleware {
 			if bodyBytes, ok := c.Get(gin.BodyBytesKey); ok {
 				body = string(bodyBytes.([]byte))
 			}
-			var fields []zap.Field
-			fields = append(fields,
-				zap.String("url", c.Request.URL.String()),
-				zap.String("method", c.Request.Method),
-				zap.String("body", body),
-				zap.String("host", c.Request.Host),
-				zap.String("ipv4", c.ClientIP()),
-				zap.String("latency", time.Since(startTime).String()),
-				zap.String("args", extractArgs(req)),
-				zap.String("reply", extractArgs(reply)),
-				zap.Int32("code", code),
-				zap.String("reason", reason),
-			)
 
+			var fields = make([]zap.Field, 10)
+			fields[0] = zap.String("url", c.Request.URL.String())
+			fields[1] = zap.String("method", c.Request.Method)
+			fields[2] = zap.String("body", body)
+			fields[3] = zap.String("host", c.Request.Host)
+			fields[4] = zap.String("ipv4", c.ClientIP())
+			fields[5] = zap.String("latency", time.Since(startTime).String())
+			fields[6] = zap.String("args", extractArgs(req))
+			fields[7] = zap.String("reply", extractArgs(reply))
+			fields[8] = zap.Int32("code", code)
+			fields[9] = zap.String("reason", reason)
 			// 当前仅记录 到api曾的出入参数，如需独立记录额外参数，请独立配置
-			plog.WithCtx(c.Request.Context(), log).Info("req-log", fields...)
+			l.With(c.Request.Context()).Info("req-log", fields...)
 			return
 		}
 	}
