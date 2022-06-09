@@ -132,7 +132,9 @@ func (l Log) With(ctx context.Context) *zap.Logger {
 	}
 	// 跳过 gorm 内置的调用
 	var (
-		gormPackage    = filepath.Join("gorm.io", "gorm")
+		gormPackage = filepath.Join("gorm.io", "gorm")
+		genPackage  = filepath.Join("gorm.io", "gen")
+
 		zapgormPackage = filepath.Join("moul.io", "zapgorm2")
 	)
 	var fields []zap.Field
@@ -143,20 +145,21 @@ func (l Log) With(ctx context.Context) *zap.Logger {
 	)
 	// 减去一次封装，以及一次在 logger 初始化里添加 zap.AddCallerSkip(1)
 	clone := l.l.WithOptions(zap.AddCallerSkip(-2))
-	for i := 2; i < 15; i++ {
+	for i := 2; i < 20; i++ {
 		_, file, _, ok := runtime.Caller(i)
 		fmt.Println("file:", file)
 		switch {
 		case !ok:
 		case strings.HasSuffix(file, "_test.go"):
 		case strings.Contains(file, gormPackage):
+		case strings.Contains(file, genPackage):
 		case strings.Contains(file, zapgormPackage):
 		default:
 			// 返回一个附带跳过行号的新的 zap logger
 			return clone.WithOptions(zap.AddCallerSkip(i), zap.Fields(fields...))
 		}
 	}
-
+	fmt.Println("?")
 	return l.l.With(fields...)
 }
 
