@@ -6,7 +6,6 @@ package log
 
 import (
 	"context"
-	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/google/wire"
 	"github.com/spf13/viper"
@@ -134,8 +133,6 @@ func (l Log) With(ctx context.Context) *zap.Logger {
 	var (
 		gormPackage = filepath.Join("gorm.io", "gorm")
 		genPackage  = filepath.Join("gorm.io", "gen")
-
-		zapgormPackage = filepath.Join("moul.io", "zapgorm2")
 	)
 	var fields []zap.Field
 	fields = append(fields,
@@ -145,21 +142,23 @@ func (l Log) With(ctx context.Context) *zap.Logger {
 	)
 	// 减去一次封装，以及一次在 logger 初始化里添加 zap.AddCallerSkip(1)
 	clone := l.l.WithOptions(zap.AddCallerSkip(-2))
-	for i := 2; i < 20; i++ {
+	for i := 2; i < 15; i++ {
 		_, file, _, ok := runtime.Caller(i)
-		fmt.Println("file:", file)
+		//fmt.Println("file:", file)
 		switch {
 		case !ok:
+		case strings.HasSuffix(file, "pb.go"): //过滤自动生成文件
 		case strings.HasSuffix(file, "_test.go"):
+		case strings.HasSuffix(file, ".gen.go"): // gorm/gen 自动生成文件&生成文件
 		case strings.Contains(file, gormPackage):
 		case strings.Contains(file, genPackage):
-		case strings.Contains(file, zapgormPackage):
+		case strings.Contains(file, "pkg/log/log.go"):
 		default:
 			// 返回一个附带跳过行号的新的 zap logger
 			return clone.WithOptions(zap.AddCallerSkip(i), zap.Fields(fields...))
 		}
 	}
-	fmt.Println("?")
+	//fmt.Println("?")
 	return l.l.With(fields...)
 }
 
