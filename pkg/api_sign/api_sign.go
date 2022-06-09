@@ -17,10 +17,10 @@ import (
 
 var ProviderSet = wire.NewSet(NewApiSign, NewOps)
 var (
-	ErrParseQuery   = errors.New("parse query error")
-	ErrKeyMiss      = errors.New("some keys missing")
-	ErrTimeout      = errors.New("timeout")
-	ErrSignNotMatch = errors.New("sign not match")
+	ErrParseQuery   = errors.New("【api_sign】parse query error")
+	ErrKeyMiss      = errors.New("【api_sign】some keys missing")
+	ErrTimeout      = errors.New("【api_sign】sign timeout")
+	ErrSignNotMatch = errors.New("【api_sign】sign not match")
 )
 
 type (
