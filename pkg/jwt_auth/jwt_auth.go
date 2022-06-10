@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/viper"
 	"net/http"
 	"strings"
+	"time"
 )
 
 var ProviderSet = wire.NewSet(NewJwtAuth, NewOps)
@@ -143,4 +144,20 @@ func (a *JwtAuth) Verifier(r *http.Request) (jwt.MapClaims, error) {
 	}
 
 	return claims, nil
+}
+
+//create token with map
+func (a *JwtAuth) CreateTokenWithMapPayload(payloads map[string]interface{}, seconds int64) (string, error) {
+	now := time.Now().Unix()
+	claims := make(jwt.MapClaims)
+	claims["exp"] = now + seconds //过期时间
+	claims["iat"] = now
+	for k, v := range payloads {
+		claims[k] = v
+	}
+
+	token := jwt.New(jwt.SigningMethodHS256)
+	token.Claims = claims
+
+	return token.SignedString([]byte(a.secret))
 }

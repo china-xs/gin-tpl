@@ -12,12 +12,10 @@ import (
 	tpl "github.com/china-xs/gin-tpl"
 	"github.com/china-xs/gin-tpl/pkg/jwt_auth"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 )
 
 //验证失败回调函数
@@ -164,7 +162,7 @@ func TestAuthorizeSuccess(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/info", nil)
-	token, err := CreateToken(key, map[string]interface{}{
+	token, err := jwt_auth.NewJwtAuth(options).CreateTokenWithMapPayload(map[string]interface{}{
 		"user_id": "256",
 	}, 3600)
 	t.Log("token", token)
@@ -172,19 +170,4 @@ func TestAuthorizeSuccess(t *testing.T) {
 
 	req.Header.Set("Authorization", "Bearer "+token)
 	app.Engine.ServeHTTP(w, req)
-}
-
-func CreateToken(secretKey string, payloads map[string]interface{}, seconds int64) (string, error) {
-	now := time.Now().Unix()
-	claims := make(jwt.MapClaims)
-	claims["exp"] = now + seconds
-	claims["iat"] = now
-	for k, v := range payloads {
-		claims[k] = v
-	}
-
-	token := jwt.New(jwt.SigningMethodHS256)
-	token.Claims = claims
-
-	return token.SignedString([]byte(secretKey))
 }
