@@ -71,9 +71,15 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s *gin_tpl.Server,srv {{$svrTyp
 		var in {{.Request}}
 		switch c.Request.Method {
 			case "POST","PUT":
-			if err := c.ShouldBindBodyWith(&in{{.Body}},binding.JSON); err != nil {
+			b := binding.Default(c.Request.Method, c.ContentType())
+			if b.Name()== "xml" {
+				if err := c.ShouldBindXML(&in); err != nil {
+					s.Enc(c,nil,err)
+					return
+				}
+			}else if err := c.ShouldBindBodyWith(&in{{.Body}}, binding.JSON); err != nil {
 				s.Enc(c,nil,err)
-				return 
+				return
 			}
 			if strings.Contains(c.Request.URL.String(),"?"){
 				if err := c.ShouldBindQuery(&in); err != nil {
