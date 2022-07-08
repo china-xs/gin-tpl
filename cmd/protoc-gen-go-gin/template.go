@@ -65,21 +65,37 @@ func Register{{.ServiceType}}GinServer(s *gin_tpl.Server, srv {{.ServiceType}}Gi
 	{{- end}}
 }
 
+func _{{.ServiceType}}_getBindBodyType(c *gin.Context) binding.BindingBody{
+	b := binding.Default(c.Request.Method, c.ContentType())
+	var bin binding.BindingBody
+	switch b.Name() {
+	case "json":
+		bin = binding.JSON
+	case "xml":
+		bin = binding.XML
+	case "yaml":
+		bin = binding.YAML
+	case "protobuf":
+		bin = binding.ProtoBuf
+	case "msgpack":
+		bin = binding.MsgPack
+	default:
+		bin = binding.JSON
+	}
+	return bin
+}
+
+
 {{range .Methods}}
 func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s *gin_tpl.Server,srv {{$svrType}}GinServer) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		var in {{.Request}}
 		switch c.Request.Method {
 			case "POST","PUT":
-			b := binding.Default(c.Request.Method, c.ContentType())
-			if b.Name()== "xml" {
-				if err := c.ShouldBindXML(&in); err != nil {
-					s.Enc(c,nil,err)
-					return
-				}
-			}else if err := c.ShouldBindBodyWith(&in{{.Body}}, binding.JSON); err != nil {
+			bin := _{{$svrType}}_getBindBodyType(c)
+			if err := c.ShouldBindBodyWith(&in,bin); err!=nil{
 				s.Enc(c,nil,err)
-				return
+				return 
 			}
 			if strings.Contains(c.Request.URL.String(),"?"){
 				if err := c.ShouldBindQuery(&in); err != nil {
