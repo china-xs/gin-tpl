@@ -59,9 +59,10 @@ type {{.ServiceType}}GinServer interface {
 {{- end}}
 }
 
-func Register{{.ServiceType}}GinServer(s *gin_tpl.Server, srv {{.ServiceType}}GinServer) {
+func Register{{.ServiceType}}GinServer(s *gin_tpl.Server, srv {{.ServiceType}}GinServer,ms ...gin.HandlerFunc) {
 	{{- range .Methods}}
-	s.Engine.{{.Method}}("{{.Path}}", _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s,srv))
+	hdl_{{.Name}}{{.Num}} := append(ms,_{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s,srv))
+	s.Engine.{{.Method}}("{{.Path}}", hdl_{{.Name}}{{.Num}}...)
 	{{- end}}
 }
 
