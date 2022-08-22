@@ -1,10 +1,11 @@
-// Package gin_tpl
+// Package http
 // @author: xs
-// @date: 2022/3/4
-// @Description: 数据解析
-package gin_tpl
+// @date: 2022/8/5
+// @Description: http
+package http
 
 import (
+	"github.com/china-xs/gin-tpl/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"net/http"
@@ -13,12 +14,28 @@ import (
 // DecodeRequestFunc is decode request func.
 type DecodeRequestFunc func(*gin.Context, interface{}) error
 
+// EncodeResponseFunc is encode response func.
 type EncodeResponseFunc func(*gin.Context, interface{}, error)
 
 // DefaultRequestDecoder decodes the request body to object.
 func DefaultRequestDecoder(c *gin.Context, v interface{}) error {
 	switch c.Request.Method {
-	case http.MethodPost, http.MethodPut:
+	case http.MethodPost, http.MethodPut, http.MethodPatch: // default Content-Type:json
+		if err := c.ShouldBindBodyWith(v, binding.JSON); err != nil {
+			return errors.New(http.StatusBadRequest, "bindBody", err.Error())
+		}
+	case http.MethodGet, http.MethodDelete:
+		if err := c.ShouldBindQuery(v); err != nil {
+			return errors.New(http.StatusBadRequest, "bindQuery", err.Error())
+		}
+	}
+	return nil
+}
+
+// AnyRequestDecoder decodes the request body to object.
+func AnyRequestDecoder(c *gin.Context, v interface{}) error {
+	switch c.Request.Method {
+	case http.MethodPost, http.MethodPut, http.MethodPatch:
 		bin := getBindingBody(c)
 		if err := c.ShouldBindBodyWith(v, bin); err != nil {
 			return err
@@ -52,15 +69,27 @@ func getBindingBody(c *gin.Context) binding.BindingBody {
 	return bin
 }
 
+type Resp struct {
+	Code   int         `json:"code"`
+	Msg    string      `json:"msg"`
+	Reason string      `json:"reason"`
+	Data   interface{} `json:"data"`
+}
+
 // DefaultResponseEncoder encodes the object to the HTTP response.
 func DefaultResponseEncoder(c *gin.Context, obj interface{}, err error) {
-	// 默认输出逻辑
+	var resp Resp
+	resp.Msg = "请求成功"
+	resp.Reason = "success"
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"msg": err.Error(),
-		})
+		er1 := errors.FromError(err)
+		resp.Code = int(er1.Code)
+		resp.Msg = er1.Message
+		resp.Reason = er1.Reason
+		c.JSON(int(er1.Code), resp)
 		return
-	} else {
-		c.JSON(http.StatusOK, obj)
 	}
+	resp.Data = obj
+	c.JSON(http.StatusOK, resp)
+	return
 }

@@ -1,8 +1,0 @@
-GetTokenRequest:
-  Password:
-    between: "密码长度必须在2～128之间"
-  Id:
-    range: "年龄不再规定范围"
-    gte: "未满18岁不允许注册"
-  Cd:
-    len: "常顿有问题"

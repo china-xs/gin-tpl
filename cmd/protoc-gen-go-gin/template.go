@@ -59,69 +59,27 @@ type {{.ServiceType}}GinServer interface {
 {{- end}}
 }
 
-func Register{{.ServiceType}}GinServer(s *gin_tpl.Server, srv {{.ServiceType}}GinServer,ms ...gin.HandlerFunc) {
+func Register{{.ServiceType}}GinServer(s *http.Server, srv {{.ServiceType}}GinServer) {
 	{{- range .Methods}}
-	hdl_{{.Name}}{{.Num}} := append(ms,_{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s,srv))
-	s.Engine.{{.Method}}("{{.Path}}", hdl_{{.Name}}{{.Num}}...)
+	s.Engine.{{.Method}}("{{.Path}}", _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s,srv))
 	{{- end}}
-}
-
-func _{{.ServiceType}}_getBindBodyType(c *gin.Context) binding.BindingBody{
-	b := binding.Default(c.Request.Method, c.ContentType())
-	var bin binding.BindingBody
-	switch b.Name() {
-	case "json":
-		bin = binding.JSON
-	case "xml":
-		bin = binding.XML
-	case "yaml":
-		bin = binding.YAML
-	case "protobuf":
-		bin = binding.ProtoBuf
-	case "msgpack":
-		bin = binding.MsgPack
-	default:
-		bin = binding.JSON
-	}
-	return bin
 }
 
 
 {{range .Methods}}
-func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s *gin_tpl.Server,srv {{$svrType}}GinServer) func(c *gin.Context) {
+func _{{$svrType}}_{{.Name}}{{.Num}}_Gin_Handler(s *http.Server,srv {{$svrType}}GinServer) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		var in {{.Request}}
-		switch c.Request.Method {
-			case "POST","PUT":
-			bin := _{{$svrType}}_getBindBodyType(c)
-			if err := c.ShouldBindBodyWith(&in,bin); err!=nil{
-				s.Enc(c,nil,err)
-				return 
-			}
-			if strings.Contains(c.Request.URL.String(),"?"){
-				if err := c.ShouldBindQuery(&in); err != nil {
-					s.Enc(c,nil,err)
-					return 
-				}
-			}
-			case "GET","DELETE":
-			if err := c.ShouldBindQuery(&in); err != nil {
-				s.Enc(c,nil,err)
-				return 
-			}
+		if err := s.Bind(c, &in); err !=nil {
+			s.Result(c, nil, err)
+			return
 		}
-		{{- if .HasVars}}
-		if err := c.ShouldBindUri(&in); err != nil {
-			s.Enc(c,nil,err)
-			return 
-		}
-		{{- end}}
-		c.Set(gin_tpl.OperationKey, "/{{$svrName}}/{{.Name}}")
+		c.Set(http.OperationKey, "/{{$svrName}}/{{.Name}}")
 		h := s.Middleware(func(c *gin.Context, req interface{}) (interface{}, error) {
 			return srv.{{.Name}}(c, req.(*{{.Request}}))
 		})
 		out, err := h(c, &in)
-		s.Enc(c,out,err)
+		s.Result(c,out,err)
 		return
 	}
 }
