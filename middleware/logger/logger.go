@@ -4,7 +4,6 @@ import (
 	"fmt"
 	plog "github.com/china-xs/gin-tpl/pkg/log"
 	"github.com/gin-gonic/gin"
-	"github.com/go-kratos/kratos/v2/errors"
 	"go.uber.org/zap"
 	"time"
 
@@ -21,10 +20,10 @@ func Logger(log *zap.Logger) middleware.Middleware {
 			var body string
 			startTime := time.Now()
 			reply, err = handler(c, req)
-			if se := errors.FromError(err); se != nil {
-				code = se.Code
-				reason = se.Reason
-			}
+			//if se := errors.FromError(err); se != nil {
+			//	code = se.Code
+			//	reason = se.Reason
+			//}
 			// 记录body 数据
 			if bodyBytes, ok := c.Get(gin.BodyBytesKey); ok {
 				body = string(bodyBytes.([]byte))

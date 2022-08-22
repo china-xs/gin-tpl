@@ -24,7 +24,7 @@ import (
 )
 
 type {{ .Service }}Service struct {
-	pb.Unimplemented{{ .Service }}Server
+	//pb.Unimplemented{{ .Service }}Server
 }
 
 func New{{ .Service }}Service() *{{ .Service }}Service {
