@@ -7,6 +7,7 @@ package gin_tpl
 import (
 	"context"
 	"os"
+	"time"
 )
 
 type Option func(o *options)
@@ -14,7 +15,8 @@ type Option func(o *options)
 type options struct {
 	ctx     context.Context
 	sigs    []os.Signal
-	servers []CoreServer
+	timeout time.Duration
+	servers []Server
 }
 
 // Context with service context.
@@ -27,6 +29,14 @@ func Signal(sigs ...os.Signal) Option {
 	return func(o *options) { o.sigs = sigs }
 }
 
-func Servers(srv ...CoreServer) Option {
+// Timeout with server timeout time
+func Timeout(d time.Duration) Option {
+	return func(o *options) {
+		o.timeout = d
+	}
+}
+
+// Servers with start & stop server.
+func Servers(srv ...Server) Option {
 	return func(o *options) { o.servers = srv }
 }
