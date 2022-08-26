@@ -70,21 +70,22 @@ func getBindingBody(c *gin.Context) binding.BindingBody {
 }
 
 type Resp struct {
-	Code   int         `json:"code"`
-	Msg    string      `json:"msg"`
-	Reason string      `json:"reason"`
-	Data   interface{} `json:"data"`
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Reason  string      `json:"reason"`
+	Data    interface{} `json:"data"`
 }
 
 // DefaultResponseEncoder encodes the object to the HTTP response.
 func DefaultResponseEncoder(c *gin.Context, obj interface{}, err error) {
 	var resp Resp
-	resp.Msg = "请求成功"
+	resp.Code = http.StatusOK
+	resp.Message = "请求成功"
 	resp.Reason = "success"
 	if err != nil {
 		er1 := errors.FromError(err)
 		resp.Code = int(er1.Code)
-		resp.Msg = er1.Message
+		resp.Message = er1.Message
 		resp.Reason = er1.Reason
 		c.JSON(int(er1.Code), resp)
 		return

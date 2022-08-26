@@ -6,7 +6,6 @@ package gin_tpl
 
 import (
 	"context"
-	"fmt"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 	"os"
@@ -16,8 +15,8 @@ import (
 	"time"
 )
 
-// CoreServer 迭代启动关闭统一由CoreServer 管控
-type CoreServer interface {
+// Server 迭代启动关闭统一由CoreServer 管控
+type Server interface {
 	Start(context.Context) error
 	Stop(context.Context) error
 }
@@ -32,8 +31,9 @@ func New(opts ...Option) *App {
 	ctx := context.TODO()
 
 	o := options{
-		ctx:  context.TODO(),
-		sigs: []os.Signal{syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT},
+		ctx:     context.TODO(),
+		sigs:    []os.Signal{syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT},
+		timeout: 10 * time.Second,
 	}
 	for _, opt := range opts {
 		opt(&o)
@@ -53,9 +53,8 @@ func (a App) Run() error {
 		srv := srv
 		eg.Go(func() error {
 			<-ctx.Done()
-			fmt.Println("ctx:信号来了，赶紧干活")
 			ctx1 := context.TODO()
-			stopCtx, cancel := context.WithTimeout(ctx1, 10*time.Second)
+			stopCtx, cancel := context.WithTimeout(ctx1, a.opts.timeout)
 			defer cancel()
 			return srv.Stop(stopCtx)
 		})
@@ -72,13 +71,11 @@ func (a App) Run() error {
 	// 监听关闭进程信号
 	signal.Notify(c, a.opts.sigs...)
 	eg.Go(func() error {
-		for {
-			select {
-			case <-ctx.Done():
-				return nil
-			case <-c:
-				return a.Stop()
-			}
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-c:
+			return a.Stop()
 		}
 	})
 	// 等待所有eg所有进程结束

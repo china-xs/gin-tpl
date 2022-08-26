@@ -6,11 +6,10 @@ package validate
 
 import (
 	"fmt"
+	"github.com/china-xs/gin-tpl/errors"
 	"github.com/china-xs/gin-tpl/middleware"
 	"github.com/gin-gonic/gin"
-	"github.com/pkg/errors"
 
-	//"github.com/go-kratos/kratos/v2/errors"
 	"github.com/kataras/i18n"
 	"strings"
 )
@@ -33,8 +32,7 @@ func Validator() middleware.Middleware {
 		return func(c *gin.Context, req interface{}) (reply interface{}, err error) {
 			if v, ok := req.(validator); ok {
 				if err := v.Validate(); err != nil {
-					return nil, err
-					//return nil, errors.BadRequest("VALIDATOR", err.Error())
+					return nil, errors.New(400, "Bad Request", err.Error())
 				}
 			}
 			return handler(c, req)
@@ -57,16 +55,11 @@ func Validator2I18n(I18n *i18n.I18n) middleware.Middleware {
 						en = "zh-CN"
 					}
 					// validate 验证错误
-					fmt.Println("err:", err.Error())
 					i18nKey, params := getValidateKey(err.Error())
 					// 转换对应 i18n key && 提供对应参数
 					fmt.Printf("i18nKey:%v,params:%v\n", i18nKey, params)
 					msg := I18n.Tr(en, i18nKey, params)
-					return nil, errors.New(msg)
-					//if msg != "" {
-					//	return nil, errors.New(412, "VALIDATOR", msg)
-					//}
-					//return nil, errors.New(412, "VALIDATOR", err.Error())
+					return nil, errors.New(400, "Bad Request", msg)
 				}
 			}
 			return handler(c, req)
