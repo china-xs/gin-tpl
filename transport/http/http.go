@@ -26,6 +26,7 @@ type Server struct {
 	dec    DecodeRequestFunc       // 请求参数绑定结构
 	enc    EncodeResponseFunc      // 定义返回结构
 	ms     []middleware.Middleware // 全局中间价
+	filter []gin.HandlerFunc       // gin 全局中间件， 执行比ms 早
 }
 
 // Addr with service addr option.
@@ -39,6 +40,13 @@ func Addr(addr string) ServerOption {
 func Middleware(m ...middleware.Middleware) ServerOption {
 	return func(o *Server) {
 		o.ms = m
+	}
+}
+
+// Filter with gin server middleware
+func Filter(filter ...gin.HandlerFunc) ServerOption {
+	return func(o *Server) {
+		o.filter = filter
 	}
 }
 
@@ -67,6 +75,10 @@ func NewServer(opts ...ServerOption) *Server {
 	}
 	for _, o := range opts {
 		o(srv)
+	}
+	// use gin middleware
+	if len(srv.filter) > 0 {
+		srv.Engine.Use(srv.filter...)
 	}
 	return srv
 }
