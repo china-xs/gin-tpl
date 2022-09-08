@@ -227,6 +227,7 @@ func RestyLog(resp *resty.Response, field ...zap.Field) []zap.Field {
 	traceInfo := resp.Request.TraceInfo()
 	field = append(field,
 		zap.String("url", resp.Request.URL),
+		zap.String("resp", string(resp.Body())),
 		zap.Int("resp_status_code", resp.StatusCode()),
 		zap.String("resp_status", resp.Status()),
 		zap.String("resp_time", resp.Time().String()),
