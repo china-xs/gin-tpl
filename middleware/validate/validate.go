@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"github.com/china-xs/gin-tpl/errors"
 	"github.com/china-xs/gin-tpl/middleware"
+	log2 "github.com/china-xs/gin-tpl/pkg/log"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
 	"github.com/kataras/i18n"
 	"strings"
@@ -45,7 +47,8 @@ func Validator() middleware.Middleware {
 // @param I18n
 // @return middleware.Middleware
 //
-func Validator2I18n(I18n *i18n.I18n) middleware.Middleware {
+func Validator2I18n(I18n *i18n.I18n, log *zap.Logger) middleware.Middleware {
+	l := log2.NewL(log)
 	return func(handler middleware.Handler) middleware.Handler {
 		return func(c *gin.Context, req interface{}) (interface{}, error) {
 			if v, ok := req.(validator); ok {
@@ -59,6 +62,12 @@ func Validator2I18n(I18n *i18n.I18n) middleware.Middleware {
 					// 转换对应 i18n key && 提供对应参数
 					fmt.Printf("i18nKey:%v,params:%v\n", i18nKey, params)
 					msg := I18n.Tr(en, i18nKey, params)
+					// 记录错误日志
+					l.With(c.Request.Context()).Info("validate-err",
+						zap.String("i18nKey", i18nKey),
+						zap.String("reason", msg),
+						zap.String("errors", err.Error()),
+					)
 					return nil, errors.New(400, "Bad Request", msg)
 				}
 			}
