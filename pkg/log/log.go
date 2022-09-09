@@ -246,4 +246,4 @@ func RestyLog(resp *resty.Response, field ...zap.Field) []zap.Field {
 	return field
 }
 
-var ProviderSet = wire.NewSet(New, NewOptions)
+var ProviderSet = wire.NewSet(New, NewOptions, NewL)
