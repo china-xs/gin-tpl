@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -62,6 +63,12 @@ func New(o *Options) (*zap.Logger, func(), error) {
 	err = level.UnmarshalText([]byte(o.Level))
 	if err != nil {
 		return nil, func() {}, err
+	}
+	ip, err := getLocalIP()
+	if strings.HasSuffix(o.Filename, ".log") && err == nil {
+		l := len(o.Filename)
+		filename := o.Filename[0 : l-4]
+		o.Filename = fmt.Sprintf("%s-%v.log", filename, ip)
 	}
 	write := &lumberjack.Logger{ // concurrent-safed
 		Filename:   o.Filename,   // 文件路径
@@ -247,3 +254,29 @@ func RestyLog(resp *resty.Response, field ...zap.Field) []zap.Field {
 }
 
 var ProviderSet = wire.NewSet(New, NewOptions, NewL)
+
+//
+// getLocalIP 获取容器|本地ip
+// @return ip
+// @return err
+//
+func getLocalIP() (ip string, err error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return
+	}
+	for _, addr := range addrs {
+		ipAddr, ok := addr.(*net.IPNet)
+		if !ok {
+			continue
+		}
+		if ipAddr.IP.IsLoopback() {
+			continue
+		}
+		if !ipAddr.IP.IsGlobalUnicast() {
+			continue
+		}
+		return ipAddr.IP.String(), nil
+	}
+	return
+}
